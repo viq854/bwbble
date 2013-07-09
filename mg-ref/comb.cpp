@@ -69,9 +69,9 @@ void print_multigenome(string multifasta_filename, string bubble_filename, char 
 
   	string extract_filename;
   	ifstream ext;
-  	extract_filename = "vcf_raw_bk/SNP.extract.chr";
+  	extract_filename = "mg-ref-output/SNP.extract.chr";
   	extract_filename += chr;
-	extract_filename += ".data.raw.remove2.NA18626.HG00122";
+	extract_filename += ".data";
   	ext.open(extract_filename.c_str());
 
   	ofstream multifasta, bubble;
@@ -89,51 +89,56 @@ void print_multigenome(string multifasta_filename, string bubble_filename, char 
   	multifasta << header << endl;
   	bubble << header << endl;
 
-  	long long pos, i, occ;
-  	char ref, alt;
-  	int bit[BASE_SIZE], total;
-  	while(ext >> pos >> ref >> alt >> occ)
-  	{
-		if(occ < OCC_THRESHOLD) 
-		{
-			low_end_snp_number++;
-			continue;
-		}
+	long long i;
+	if(ext.good())
+	{
+	  	long long pos, occ;
+  		char ref, alt;
+	  	int bit[BASE_SIZE], total;
+  		while(ext >> pos >> ref >> alt >> occ)
+	  	{
+			if(occ < OCC_THRESHOLD) 
+			{
+				low_end_snp_number++;
+				continue;
+			}
 
-		if(occ > MAX_OCC - OCC_THRESHOLD)
-		{
-			high_end_snp_number++;
-			chromosome[pos] = alt;
-			continue;
-		}
+			if(occ > MAX_OCC - OCC_THRESHOLD)
+			{
+				high_end_snp_number++;
+				chromosome[pos] = alt;
+				continue;
+			}
 
-    		total_snp_number++;
-    		for(i = 0; i < BASE_SIZE; i++)
-    		{
-      			if(inSet(chromosome[pos], base[i]) || inSet(ref, base[i]) || inSet(alt, base[i]))
-      			{
-        			bit[i] = 1;
-      			}
-      			else
-      			{
-        			bit[i] = 0;
-      			}
-    		}
+    			total_snp_number++;
+    			for(i = 0; i < BASE_SIZE; i++)
+	    		{
+      				if(inSet(chromosome[pos], base[i]) || inSet(ref, base[i]) || inSet(alt, base[i]))
+      				{
+        				bit[i] = 1;
+	      			}
+      				else
+      				{
+        				bit[i] = 0;
+	      			}
+    			}
 
-    		total = 0;
-    		for(i = 0; i < BASE_SIZE; i++)
-    		{
-      			total += (bit[i] * base_order[i]);
-    		}
+    			total = 0;
+	    		for(i = 0; i < BASE_SIZE; i++)
+    			{
+      				total += (bit[i] * base_order[i]);
+	    		}
 
-    		for(i = 0; i < ALPHABET_SIZE; i++)
-    		{
-      			if(gray_code[i] == total)
-      			{
-        			chromosome[pos] = abbr[i];
-      			}
-    		}
-  	}
+    			for(i = 0; i < ALPHABET_SIZE; i++)
+    			{
+      				if(gray_code[i] == total)
+	      			{
+        				chromosome[pos] = abbr[i];
+      				}
+    			}
+	  	}
+		ext.close();
+	}
 
   	for(i = 1; i < start; i++)
  	{
@@ -151,7 +156,6 @@ void print_multigenome(string multifasta_filename, string bubble_filename, char 
     		bubble << endl;
   	}
 
-  	ext.close();
   	multifasta.close();
   	bubble.close();
 }
@@ -162,7 +166,7 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
   	fasta.open(fasta_filename.c_str());
 
   	string header, line;
-  	long long i, start, g;
+  	long long i, start, g = 0;
 	long long total_snp_number = 0, low_end_snp_number = 0, high_end_snp_number = 0;
   	char *chromosome;
 
@@ -174,7 +178,6 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
     		{
       			if(g)
       			{
-				cout << start << endl;
         			print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number);
       			}
       			g++;
@@ -190,7 +193,6 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
       			}
     		}
   	}
-	cout << start << endl;
   	print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number);
 	printf("total snp number is %lld\n", total_snp_number);
 	printf("low end snp number is %lld\n", low_end_snp_number);
@@ -220,41 +222,44 @@ void print_bubble(string chr, string bubble_filename, string data_filename, char
 		data.open(data_filename.c_str(), ios::out | ios::app);
 	}
 
-  	extract_filename = "vcf_raw_bk/INDEL.extract.chr";
+  	extract_filename = "mg-ref-output/INDEL.extract.chr";
   	extract_filename += chr;
-	extract_filename += ".data.raw.remove2.NA18626.HG00122";
+	extract_filename += ".data";
   	ext.open(extract_filename.c_str());
 
-  	while(ext >> pos >> indel_ref >> indel_alt >> occ)
-  	{
-		if(occ < OCC_THRESHOLD) 
-		{
-			low_end_indel_number++;
-			continue;
-		}
+	if(ext.good())
+	{
+	  	while(ext >> pos >> indel_ref >> indel_alt >> occ)
+  		{
+			if(occ < OCC_THRESHOLD) 
+			{
+				low_end_indel_number++;
+				continue;
+			}
 
-		total_indel_number++;
+			total_indel_number++;
 
-    		bubble << ">" << "bubble" << indel_count << " " << chr << " " << get_max(pos - WINDOW_SIZE, 1) << endl;
-		data << chr << " " << get_max(pos - WINDOW_SIZE, 1) << " " << get_min(WINDOW_SIZE, pos - 1) << " " << indel_alt.size() << " " << get_min(WINDOW_SIZE, start - pos - indel_ref.length()) << " " << indel_ref.size() << endl;
-    		for(i = get_min(WINDOW_SIZE, pos - 1); i > 0; i--)
-    		{
-      			bubble << chromosome[pos - i];
-    		}
-    		if(indel_alt[0] != '.')
-    		{
-      			bubble << indel_alt;
-    		}
-    		for(i = 0; i < get_min(WINDOW_SIZE, start - pos - indel_ref.length()); i++)
-    		{
-      			bubble << chromosome[pos + indel_ref.length() + i];
-    		}
-    		bubble << endl;
+	    		bubble << ">" << "bubble" << indel_count << " " << chr << " " << get_max(pos - WINDOW_SIZE, 1) << endl;
+			data << chr << " " << get_max(pos - WINDOW_SIZE, 1) << " " << get_min(WINDOW_SIZE, pos - 1) << " " << indel_alt.size() << " " << get_min(WINDOW_SIZE, start - pos - indel_ref.length()) << " " << indel_ref.size() << endl;
+    			for(i = get_min(WINDOW_SIZE, pos - 1); i > 0; i--)
+	    		{
+      				bubble << chromosome[pos - i];
+    			}
+	    		if(indel_alt[0] != '.')
+    			{
+      				bubble << indel_alt;
+	    		}
+    			for(i = 0; i < get_min(WINDOW_SIZE, start - pos - indel_ref.length()); i++)
+    			{
+      				bubble << chromosome[pos + indel_ref.length() + i];
+	    		}
+    			bubble << endl;
 
-    		indel_count++;
-  	}
+    			indel_count++;
+	  	}
 
-  	ext.close();
+  		ext.close();
+	}
   	bubble.close();
 	data.close();
 }

@@ -106,13 +106,13 @@ vector<string> vcf_extract(string input_filename, int par_clear, vector<string> 
     		{
       			if(chr.compare(chr_ori) != 0)
       			{
-        			SNP_filename = "vcf_raw_bk/SNP.extract.chr";
+        			SNP_filename = "mg-ref-output/SNP.extract.chr";
         			SNP_filename += chr;
-        			SNP_filename += ".data.raw";
+        			SNP_filename += ".data";
 
-        			INDEL_filename = "vcf_raw_bk/INDEL.extract.chr";
+        			INDEL_filename = "mg-ref-output/INDEL.extract.chr";
         			INDEL_filename += chr;
-        			INDEL_filename += ".data.raw";
+        			INDEL_filename += ".data";
 
         			if(SNP.is_open())
         			{
