@@ -177,6 +177,11 @@ fasta_annotations_t* annf2ann(char *annFname) {
 	return annotations;
 }
 
+void free_ann(fasta_annotations_t* annotations) {
+	free(annotations->seq_anns);
+	free(annotations);
+}
+
 // the packed reference sequence is read from the PAC file, uncompressed,
 // concatenated with its reverse complement, and stored into seq
 void pac2seq(char *pacFname, unsigned char** seq, bwtint_t *totalSeqLen) {

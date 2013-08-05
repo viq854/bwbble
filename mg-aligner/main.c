@@ -1,5 +1,5 @@
 /*
- * Program BWBBLE for Short-Read Alignment to a Multi-Genome
+ * Program BWBBLE mg-aligner for Short-Read Alignment to a Multi-Genome
  * by Victoria Popic (viq@stanford.edu) 2012
  *
  * MIT License
@@ -39,7 +39,7 @@ static int usage() {
 	printf("Usage:   bwbble command [options] \n");
 	printf("Command: index    index sequences in the FASTA format\n");
 	printf("         align    exact or inexact read alignment\n");
-	printf("         aln2sam  produce SAM file for single-end mapping\n");
+	printf("         aln2sam  convert alignment results to SAM file format for single-end mapping\n");
 	printf("\n");
 	return 1;
 }
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 		free(params);
 	} else if (strcmp(argv[1], "aln2sam") == 0) {
 		if(argc < 5) {
-			printf("Usage: bwbble aln2sam [-S, -n, -occ] seq_fasta reads_fastq mapping_aln \n");
+			printf("Usage: bwbble aln2sam [-S, -n] seq_fasta reads_fastq alns_aln \n");
 			exit(1);
 		}
 		int is_multiref = 1;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 				default: return 1;
 			}
 		}
-		eval_alns(argv[optind+1], argv[optind+2], argv[optind+3], is_multiref, max_diff);
+		alns2sam(argv[optind+1], argv[optind+2], argv[optind+3], argv[optind+4], is_multiref, max_diff);
 	} else {
 		printf("Error: Unknown command '%s'\n", argv[1]);
 		usage();

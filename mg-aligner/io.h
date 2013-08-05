@@ -215,6 +215,7 @@ void print_read(read_t* read);
 void free_reads(reads_t* reads);
 
 fasta_annotations_t* annf2ann(char *annFname);
+void free_ann(fasta_annotations_t* annotations);
 
 // Compression
 void pack_byte(const unsigned char *input, unsigned char *output, const bwtint_t length);
@@ -222,8 +223,5 @@ void unpack_byte(const unsigned char *input, unsigned char *output, const bwtint
 void pack_word(const unsigned char *input, unsigned int *output, const bwtint_t length);
 void unpack_word(const unsigned char *input, unsigned char *output, const bwtint_t length);
 
-// Testing
-void fasta2fastaNoN(char *fastaFname);
-void fasta2fastaACTG(char *fastaFname);
 
 #endif

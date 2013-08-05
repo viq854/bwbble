@@ -143,5 +143,6 @@ void print_alignments(alns_t* alns);
 void alns2alnf(alns_t* alns, FILE* alnFile);
 alns_t* alnsf2alns(int* num_alns, char *alnFname);
 void eval_alns(char *fastaFname, char *readsFname, char *alnFname, int is_multiref, int max_diff);
+void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFname, int is_multiref, int max_diff);
 
 #endif

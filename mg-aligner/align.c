@@ -1,6 +1,6 @@
 //-------------------------------------------------------
 // Common Alignment Functionality
-// Victoria Popic (viq@stanford.edu), 2 Apr 2012
+// Victoria Popic (viq@stanford.edu), Apr 2012
 //-------------------------------------------------------
 
 #include <stdlib.h>
@@ -38,7 +38,7 @@ void set_default_aln_params(aln_params_t* params) {
 }
 
 int align_reads(char* fastaFname, char* readsFname, aln_params_t* params) {
-	printf("**** BWT-SNP Read Alignment ****\n");
+	printf("**** BWBBLE Read Alignment ****\n");
 	char* bwtFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* alnsFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* preFname = (char*) malloc(strlen(fastaFname) + 5);
@@ -262,7 +262,6 @@ void reset_alignments(alns_t* alns) {
 
 void add_alignment(aln_entry_t* e, const bwtint_t L, const bwtint_t U, int score, alns_t* alns, const aln_params_t* params) {
 	// do not add the alignment if we already have an alignment with these bounds (can occur with gaps)
-	//if(params->max_gapo) {
 	if(e->num_gapo) {
 		for(int j = 0; j < alns->num_entries; j++) {
 			aln_t aln = alns->entries[j];
@@ -371,14 +370,176 @@ alns_t* alnsf2alns(int* n_alns, char *alnFname) {
 	return alns;
 }
 
-/* Alignment Result Evaluation */
+/* Alignment Result Evaluation & SAM IO */
+
+// SAM IO / MAPQ adapted from BWA
 
 int check_ref_mapping(read_t* read, int is_multiref);
 void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_mm);
+void print_aln2sam(FILE* samFile, const fasta_annotations_t* annotations, read_t* r);
+
+
+void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFname, int is_multiref, int max_diff) {
+	printf("**** BWBBLE Alignment Evaluation/SAM File Generation ****\n");
+
+	// load the BWT
+	char* bwtFname  = (char*) malloc(strlen(fastaFname) + 5);
+	char* annFname  = (char*) malloc(strlen(fastaFname) + 5);
+	sprintf(bwtFname, "%s.bwt", fastaFname);
+	sprintf(annFname, "%s.ann", fastaFname);
+	bwt_t* BWT = load_bwt(bwtFname);
+	fasta_annotations_t* annotations = annf2ann(annFname);
+
+	// load the alignment results of all the reads (TODO: batch)
+	int num_alns;
+	alns_t* alns = alnsf2alns(&num_alns, alnsFname);
+	reads_t* reads = fastq2reads(readsFname);
+	assert(num_alns == reads->count);
+
+	// open SAM for writing
+	FILE* samFile = (FILE*) fopen(samFname, "w");
+	if (samFile == NULL) {
+		printf("alns2sam: Cannot open SAM file: %s!\n", samFname);
+		perror(samFname);
+		exit(1);
+	}
+
+	// print SAM headers
+	// @SQ (name, length)
+	for (int i = 0; i < annotations->num_seq; i++) {
+		// TODO: avoid printing bubble branches
+		fprintf(samFile, "@SQ\tSN:%s\tLN:%d\n", annotations->seq_anns[i].name, (int) (annotations->seq_anns[i].end_index - annotations->seq_anns[i].start_index+1));
+	}
+	// @RG
+	// @PG
+	fprintf(samFile, "@PG\tID:bwbble\tPN:bwbble\tVN:0.1-r01\n");
+
+	// evaluate alignment results per read / output in SAM format
+	int num_processed = 0;
+	while(num_processed < reads->count) {
+		int batch_size = ((reads->count - num_processed) > READ_BATCH_SIZE ) ? READ_BATCH_SIZE : (reads->count - num_processed);
+		for(int i = num_processed; i < num_processed + batch_size; i++) {
+			read_t* read = &reads->reads[i];
+			eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
+			print_aln2sam(samFile, annotations, read);
+		}
+		printf("Processed %d reads.\n", num_processed+batch_size);
+		num_processed += batch_size;
+	}
+	for(int i = 0; i < reads->count; i++) {
+		read_t* read = &(reads->reads[i]);
+		eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
+		print_aln2sam(samFile, annotations, read);
+	}
+
+	free(bwtFname);
+	free(annFname);
+	free_bwt(BWT);
+	free_reads(reads);
+	free_alignments(alns);
+	free_ann(annotations);
+	fclose(samFile);
+}
+
+// BWA Flags
+#define SAM_FSU   4 // self-unmapped
+#define SAM_FSR  16 // self on the reverse strand
+
+void print_aln2sam(FILE* samFile, const fasta_annotations_t* annotations, read_t* r) {
+	int flag = 0; // FLAG
+	if(r->aln_type != ALN_NOMATCH) {
+		int seqid = -1;
+		for(int i = 0; i < annotations->num_seq; i++) { // TODO: binary search
+			if((r->aln_pos >= annotations->seq_anns[i].start_index) && (r->aln_pos <= annotations->seq_anns[i].end_index)) {
+				seqid = i; break;
+			}
+		}
+		if (r->aln_strand) flag |= SAM_FSR;
+
+		// QNAME, FLAG, RNAME
+		fprintf(samFile, "%s\t%d\t%s\t", r->name, flag, annotations->seq_anns[seqid].name);
+		// POS (1-based), MAPQ
+		fprintf(samFile, "%d\t%d\t", (int)(r->aln_pos - annotations->seq_anns[seqid].start_index + 1), r->mapQ);
+
+		// CIGAR
+		if (r->aln_strand) { // reverse aln path
+			for (int i = 0; i < r->aln_length >> 1; i++) {
+				char tmp = r->aln_path[r->aln_length-1-i];
+				r->aln_path[r->aln_length-1-i] = r->aln_path[i]; r->aln_path[i] = tmp;
+			}
+		}
+		int cigar_length = 1;
+		unsigned char last_type = r->aln_path[0];
+		for (int i = 1; i < r->aln_length; i++) {
+			if (last_type != r->aln_path[i]) cigar_length++;
+			last_type = r->aln_path[i];
+		}
+		int* cigar = (int*)malloc(cigar_length * sizeof(int));
+		cigar[0] = 1u << 4 | r->aln_path[r->aln_length-1];
+		last_type = r->aln_path[r->aln_length-1];
+
+		int cigar_idx = 0;
+		for (int i = r->aln_length - 2; i >= 0; i--) {
+			if (r->aln_path[i] == last_type) {
+				cigar[cigar_idx] += 1u << 4;
+			} else {
+				cigar_idx++;
+				cigar[cigar_idx] = 1u << 4 | r->aln_path[i];
+				last_type = r->aln_path[i];
+			}
+		}
+		for (int i = 0; i < cigar_length; i++) {
+			fprintf(samFile, "%d%c", (cigar[i] >> 4), "MID"[(cigar[i] & 0xf)]);
+		}
+
+		// RNEXT, PNEXT, TLEN (print void mate position and coordinate)
+		fprintf(samFile, "\t*\t0\t0\t");
+
+		// SEQ, QUAL (print sequence and quality)
+		char* seq = r->aln_strand ? r->rc : r->seq;
+		for (int i = 0; i != r->len; i++) {
+			fprintf(samFile, "%c", "AGCTN"[(int)seq[i]]);
+		}
+		fprintf(samFile, "\t");
+
+		if (r->qual) {
+			if (r->aln_strand) { // reverse quality
+				for (int i = 0; i < r->len >> 1; i++) {
+					char tmp = r->qual[r->len-1-i];
+					r->qual[r->len-1-i] = r->qual[i]; r->qual[i] = tmp;
+				}
+			}
+			fprintf(samFile, "%s", r->qual);
+		} else fprintf(samFile, "*");
+		fprintf(samFile, "\n");
+
+	} else { // unmapped read
+		char* seq = r->aln_strand ? r->rc : r->seq;
+		int flag = SAM_FSU;
+		// QNAME, FLAG
+		fprintf(samFile, "%s\t%d\t*\t0\t0\t*\t*\t0\t0\t", r->name, flag);
+
+		// SEQ, QUAL (print sequence and quality)
+		for (int i = 0; i != r->len; i++) {
+			fprintf(samFile, "%c", "AGCTN"[(int)seq[i]]);
+		}
+		fprintf(samFile, "\t");
+		if (r->qual) {
+			if (r->aln_strand) { // reverse quality
+				for (int i = 0; i < r->len >> 1; i++) {
+					char tmp = r->qual[r->len-1-i];
+					r->qual[r->len-1-i] = r->qual[i]; r->qual[i] = tmp;
+				}
+			}
+			fprintf(samFile, "%s", r->qual);
+		} else fprintf(samFile, "*");
+		fprintf(samFile, "\n");
+	}
+}
 
 // Evaluate the alignment results of a given set of reads
 void eval_alns(char *fastaFname, char *readsFname, char *alnsFname, int is_multiref, int max_diff) {
-	printf("**** BWT-SNP Alignment Evaluation ****\n");
+	printf("**** BWBBLE Alignment Evaluation ****\n");
 
 	// categorize reads (ids) by alignment type
 	FILE* unalignedFile = (FILE*) fopen("bwbble.unaligned", "wb");
@@ -446,13 +607,23 @@ void eval_alns(char *fastaFname, char *readsFname, char *alnsFname, int is_multi
 	fclose(misalignedFile);
 }
 
-int mapq(const read_t *read, int max_mm, int is_multiref) {
+int mapq2(const read_t *read, int max_mm, int is_multiref) {
 	if (read->aln_top1_count == 0) return 23; // no hits
 	if(is_multiref) {
 		if (read->aln_top1_count > read->num_mref_pos) return 0; // repetitive top hit
 	} else {
 		if (read->aln_top1_count > (read->ref_pos_r - read->ref_pos_l + 1)) return 0;
 	}
+	if (read->num_mm == max_mm) return 25;
+	if (read->aln_top2_count == 0) return 37; // unique
+	int n = (read->aln_top2_count >= 255)? 255 : read->aln_top2_count;
+	int q = (int)(4.343 * log(n) + 0.5);
+	return (23 < q)? 0 : 23 - q;
+}
+
+int mapq(const read_t *read, int max_mm, int is_multiref) {
+	if (read->aln_top1_count == 0) return 23; // no hits
+	if (read->aln_top1_count > 1) return 0; // repetitive top hit
 	if (read->num_mm == max_mm) return 25;
 	if (read->aln_top2_count == 0) return 37; // unique
 	int n = (read->aln_top2_count >= 255)? 255 : read->aln_top2_count;
@@ -487,9 +658,8 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 		if(aln.score > best_score) {
 			read->aln_top2_count += (aln.U - aln.L + 1);
 		} else {
-			// randomly select one of the top score alignments
+			// select one of the top score alignments
 			read->aln_top1_count += (aln.U - aln.L + 1);
-			//if (drand48() * (aln.U - aln.L + 1 + read->aln_top1_count) > (double)read->aln_top1_count) {
 			// pick only 1 top aln for this read
 			if(i == 0) {
 				read->num_mm = aln.num_mm;
@@ -498,8 +668,8 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 				read->aln_score = aln.score;
 				read->aln_length = aln.aln_length;
 				memcpy(&(read->aln_path), aln.aln_path, aln.aln_length*sizeof(int));
-				// randomly pick one of the matches
-				read->aln_sa = aln.L + (bwtint_t)((aln.U - aln.L + 1) * drand48());
+				// pick one of the matches (TODO: pick randomly from the L,U range)
+				read->aln_sa = aln.L;// + (bwtint_t)((aln.U - aln.L + 1));
 				// determine the position and strand of the mapping
 				bwtint_t ref_pos = SA(BWT, read->aln_sa);
 				if(ref_pos > (BWT->length-1)/2) {
@@ -509,20 +679,21 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 				} else {
 					read->aln_strand = 1; // read rc + fwd ref <=> fwd read/ref rc
 					bwtint_t rc_pos = (BWT->length - 1) - ref_pos - 1;
-					read->aln_pos = rc_pos - get_aln_length(aln.aln_path, aln.aln_length) + 1 - (BWT->length-1)/2;
+					//read->aln_pos = rc_pos - get_aln_length(aln.aln_path, aln.aln_length) + 1 - (BWT->length-1)/2;
+					read->aln_pos = ref_pos;
 				}
 			}
 		}
 	}
 
-	if(is_multiref) {
+	/*if(is_multiref) {
 		read->aln_type = (read->aln_top1_count > read->num_mref_pos) ? ALN_REPEAT : ALN_UNIQUE;
 	} else {
 		read->aln_type = (read->aln_top1_count > read->ref_pos_r - read->ref_pos_l + 1) ? ALN_REPEAT : ALN_UNIQUE;
-	}
-	read->mapQ = mapq(read, max_mm, is_multiref);
+	}*/
 
-	//printf("top1 = %d top2 = %d aln_score = %d\n", read->aln_top1_count, read->aln_top2_count, read->aln_score);
+	read->aln_type = (read->aln_top1_count > 1) ? ALN_REPEAT : ALN_UNIQUE;
+	read->mapQ = mapq(read, max_mm, is_multiref);
 }
 
 // 1 - correct, 0 - incorrect
