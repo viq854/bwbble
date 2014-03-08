@@ -34,9 +34,12 @@
 
 <h3>Description</h3>
 
+<p>
 BWBBLE is a BWT-based aligner that maps short reads to a compressed linear representation of a collection of genomes
 (the reference 'multi-genome').  
+</p>
 
+<p>
 The reference multi-genome is created from a single genome build (e.g. GRCh37) augmented with a set of genomic variants 
 obtained from a given collection of genomes (e.g. the 1000 Genomes Project). The SNPs present in the population 
 are incorporated by extending the 4-letter A/C/T/G nucleotide code of the single reference to the 16-letter IUPAC 
@@ -44,18 +47,26 @@ code, which allows us to encode which nucleotides have been observed at a given 
 sequenced genomes (for example, the IUPAC character R can be used to represent that both A and G were observed). 
 Indels are incorporated into the multi-genome by appending them at the end of the reference padded at both ends 
 with the bases surrounding the indel at its position in the reference.
+</p>
 
+<p>
 The reference multi-genome is stored using the standard FASTA file format. We provide a script to generate this FASTA file 
 from a single reference FASTA file (e.g. GRCh37) and a set of VCF files containing the SNPs and indels to be 
 incorporated into the reference multi-genome.
+</p>
 
+<p>
 Given the reference multi-genome, the BWBBLE aligner operates in 3 steps:
 1. reference indexing (this creates the BWT of the reference multi-genome and auxiliary data structures to enable read mapping)
 2. read mapping
 3. alignment results evaluation and reporting
+</p>
 
+<p>
 The reads are accepted in the FASTQ file format and the alignment results are reported using the SAM file format.
+</p>
 
+<p>
 The BWBBLE read alignment alrogithm is based on the BWT backwards search procedure, with the difference that a read 
 nucleotide can now match multiple bases in the reference multi-genome (namely, all the IUPAC codes that include this 
 nucleotide; e.g. read base A can match the IUPAC characters A, D, H, M, N, R, V and W).
@@ -63,7 +74,9 @@ In order to tolerate sequencing errors and other variations of the reads from th
 similar to other aligners, BWBBLE allow up to a certain number of mismatches and gaps. 
 Our inexact read alignment to the multi-genome reference algorithm is an extension of the inexact search algorithm 
 used by BWA (Li and Durbin, 2009) and is guaranteed to find all the alignments with up to n differences. 
+</p>
 
+<p>
 In order to reduce the search space and improving the performance of the alignment algorithm we have also adapted 
 many heuristics from the existing BWA aligner. In particular, no sub-optimal alignments are explored 
 if the number of best hits exceeds a given threshold. Furthermore, if the number of differences in the best hit, n_best, 
@@ -84,6 +97,7 @@ $ git checkout gh-pages
 
 <h3>Command Line Arguments </h3>
 
+<!--
 Usage:   bwbble command [options]
 
 Command:  <bf>index<\bf>    index the reference multi-genome in the FASTA format
@@ -108,7 +122,7 @@ Command:  <bf>index<\bf>    index the reference multi-genome in the FASTA format
            <bf>aln2sam<\bf>  convert alignment results to SAM file format for single-end mapping
            
            bwbble aln2sam [options] seq_fasta reads_fastq alns_aln
-
+-->
 
 <h3>Examples</h3>
 
