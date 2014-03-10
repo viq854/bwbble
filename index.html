@@ -56,9 +56,12 @@ incorporated into the reference multi-genome.
 </p>
 
 <p>
-Given the reference multi-genome, the BWBBLE aligner operates in 3 steps:
+Given the reference multi-genome, the BWBBLE aligner operates in 3 steps:  
+<br>
 1. reference indexing (this creates the BWT of the reference multi-genome and auxiliary data structures to enable read mapping)
+<br>
 2. read mapping
+<br>
 3. alignment results evaluation and reporting
 </p>
 
@@ -97,32 +100,30 @@ $ git checkout gh-pages
 
 <h3>Command Line Arguments </h3>
 
-<!--
 Usage:   bwbble command [options]
-
-Command:  <bf>index<\bf>    index the reference multi-genome in the FASTA format
-
-	        bwbble index seq_fasta
+<br>
+<br>
+Command: <br>  
+&emsp; <b>index </b> &emsp; index the reference multi-genome in the FASTA format <br>
+&emsp; bwbble index <i>seq_fasta</i> <br> <br>
 	        
-	        <bf>align<\bf>    align reads
-
-	        bwbble align [options] seq_fasta reads_fastq [output_aln]
-	        Options: M    mismatch penalty
-	                 O    gap open penalty
-	                 E    gap extend penalty
-                	 n    maximum number of differences in the alignment (gaps and mismatches)
-	                 l    length of the seed (seed := first seed_length chars of the read)
-	                 k    maximum number of differences in the seed
-	                 o    maximum number of gap opens
-	                 e    maximum number of gap extends
-	                 t    run multi-threaded with t threads
-	                 S    align with a single-genome reference
+&emsp; <b>align</b> &emsp; align reads <br>
+&emsp; bwbble align [options] <i>seq_fasta reads_fastq</i> [<i>output_aln</i>] <br>
+&emsp;<b>Options</b>: <br> 
+&emsp;&emsp; <b>M</b>&emsp;mismatch penalty <br>
+&emsp;&emsp; <b>O</b>&emsp; gap open penalty <br>
+&emsp;&emsp; <b>E</b>&emsp; gap extend penalty <br>
+&emsp;&emsp; <b>n</b>&emsp; maximum number of differences in the alignment (gaps and mismatches) <br>
+&emsp;&emsp; <b>l</b>&emsp;  length of the seed (seed := first l chars of the read) <br>
+&emsp;&emsp; <b>k</b>&emsp; maximum number of differences in the seed <br>
+&emsp;&emsp; <b>o</b>&emsp; maximum number of gap opens <br>
+&emsp;&emsp; <b>e</b>&emsp; maximum number of gap extends <br>
+&emsp;&emsp; <b>t</b>&emsp; run multi-threaded with t threads <br>
+&emsp;&emsp; <b>S</b>&emsp;align with a single-genome reference <br><br>
           
           
-           <bf>aln2sam<\bf>  convert alignment results to SAM file format for single-end mapping
-           
-           bwbble aln2sam [options] seq_fasta reads_fastq alns_aln
--->
+&emsp; <b>aln2sam</b>  convert alignment results to SAM file format for single-end mapping<br>
+&emsp; bwbble aln2sam [options] <i>seq_fasta reads_fastq alns_aln</i>
 
 <h3>Examples</h3>
 
