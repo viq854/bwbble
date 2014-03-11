@@ -80,7 +80,7 @@ used by BWA (Li and Durbin, 2009) and is guaranteed to find all the alignments w
 </p>
 
 <p>
-In order to reduce the search space and improving the performance of the alignment algorithm we have also adapted 
+In order to reduce the search space and improve the performance of the alignment algorithm we have also adapted 
 many heuristics from the existing BWA aligner. In particular, no sub-optimal alignments are explored 
 if the number of best hits exceeds a given threshold. Furthermore, if the number of differences in the best hit, n_best, 
 is less than n, then n is reset to n_best + 1. It is also possible to limit how many differences are allowed in 
@@ -98,7 +98,18 @@ $ git checkout gh-pages
 
 <!-- <p>This website is currently under construction.</p> -->
 
+<h3>Program Structure </h3>
+<p>
+The program consists of the following two subdirectories: <br>
+<b>mg-aligner:</b>&emsp;BWBBLE aligner functionality (reference indexing, read-mapping, and alignment results evaluation) <br>
+<b>mg-ref</b>: &emsp; &emsp; scripts to construct the reference multi-genome FASTA file 
+</p>
+
 <h3>Command Line Arguments </h3>
+<p>
+The following commands and options are available with the BWBBLE aligner (location: bwbble/mg-aligner). <br>
+First run 'make all' in this folder to compile the program.
+</p>
 
 Usage:   bwbble command [options]
 <br>
@@ -123,14 +134,26 @@ Command: <br>
           
           
 &emsp; <b>aln2sam</b>  convert alignment results to SAM file format for single-end mapping<br>
-&emsp; bwbble aln2sam [options] <i>seq_fasta reads_fastq alns_aln</i>
+&emsp; bwbble aln2sam [options] <i>seq_fasta reads_fastq alns_aln</i> <br>
 
-<h3>Examples</h3>
+<h3> License </h3>
+MIT License
 
-<h3>Authors and Contributors</h3>
+<h3>System Requirements </h3>
+OpenMP
+
+<h3>Authors </h3>
+<p>
+Victoria Popic wrote the BWBBLE aligner (bwbbe/mg-aligner). <br>
+Lin Huang wrote the reference multi-genome FASTA file construction script (bwbble/mg-ref). <br> <br>
+
+This program is described in the following publication: <br>
+Lin Huang*, Victoria Popic*, and Serafim Batzoglou. "Short read alignment with populations of genomes." Bioinformatics 29.13 (2013): i361-i370. <br>
+(* Joint first authors, alphabetical)
+</p>
 
 <h3>Support or Contact</h3>
-
+Please contact Victoria Popic (viq@stanford.edu) for any questions/comments or to report any problems.
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/viq854">viq854</a></p>
