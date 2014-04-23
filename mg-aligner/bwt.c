@@ -91,8 +91,8 @@ bwt_t* load_bwt(const char* bwtFname) {
 	fread(&BWT->num_occ, sizeof(bwtint_t), 1, bwtFile);
 	fread(&BWT->sa0_index, sizeof(bwtint_t), 1, bwtFile);
 	fread(&BWT->C, sizeof(bwtint_t), ALPHABET_SIZE+1, bwtFile);
-	//BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
-	BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
+	BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
+	//BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
 	BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
 	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
 	if((BWT->bwt == 0) || (BWT->O == 0) || (BWT->SA == 0)) {
@@ -123,8 +123,8 @@ bwt_t* load_bwt_aln(const char* bwtFname) {
 	fread(&BWT->num_occ, sizeof(bwtint_t), 1, bwtFile);
 	fread(&BWT->sa0_index, sizeof(bwtint_t), 1, bwtFile);
 	fread(&BWT->C, sizeof(bwtint_t), ALPHABET_SIZE+1, bwtFile);
-	BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
-	//BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
+	//BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
+	BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
 	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
 	if((BWT->bwt == 0) || (BWT->O == 0)) {
 		printf("Could not allocate memory for the BWT index. \n");
@@ -187,8 +187,8 @@ bwt_t* construct_bwt(unsigned char *ref, const bwtint_t length) {
 }
 
 void free_bwt(bwt_t* BWT) {
-	//free(BWT->bwt);
-	_mm_free(BWT->bwt);
+	free(BWT->bwt);
+	//_mm_free(BWT->bwt);
 	free(BWT->O);
 	if(BWT->SA) free(BWT->SA);
 	free(BWT);
@@ -613,7 +613,7 @@ bwtint_t get_occ_count_opt_sse(const bwt_t* BWT, const unsigned char c, const bw
 	return total_count;
 }
 
-inline void get_occ_count_actg_alphabet(const bwt_t* BWT, const bwtint_t start_index, const bwtint_t end_index, bwtint_t* occ) {
+void get_occ_count_actg_alphabet(const bwt_t* BWT, const bwtint_t start_index, const bwtint_t end_index, bwtint_t* occ) {
 	// the first word in the compressed BWT
 	const bwtint_t bwt_start = start_index >> 3;
 	// number of whole words of the compressed BWT that are in the interval

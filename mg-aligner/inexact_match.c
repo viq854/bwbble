@@ -23,7 +23,7 @@ static inline int aln_score(const int m, const int o, const int e, const aln_par
 }
 
 int align_reads_inexact(bwt_t *BWT, reads_t* reads, sa_intv_list_t* precalc_sa_intervals_table, aln_params_t* params, char* alnFname) {
-	printf("BWT-SNP Inexact Alignment...\n");
+	printf("BWBBLE Inexact Alignment...\n");
 	FILE* alnFile = (FILE*) fopen(alnFname, "a+");
 	if (alnFile == NULL) {
 		printf("align_reads_inexact: Cannot open ALN file: %s!\n", alnFname);

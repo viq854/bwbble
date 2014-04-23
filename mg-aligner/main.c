@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 		free(params);
 	} else if (strcmp(argv[1], "aln2sam") == 0) {
 		if(argc < 5) {
-			printf("Usage: bwbble aln2sam [-S, -n] seq_fasta reads_fastq alns_aln \n");
+			printf("Usage: bwbble aln2sam [-S, -n] seq_fasta reads_fastq alns_aln out_sam \n");
 			exit(1);
 		}
 		int is_multiref = 1;

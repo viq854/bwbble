@@ -422,11 +422,12 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 			read_t* read = &reads->reads[i];
 			eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
 			print_aln2sam(samFile, annotations, read);
+	
 		}
 		printf("Processed %d reads.\n", num_processed+batch_size);
 		num_processed += batch_size;
 	}
-	for(int i = 0; i < reads->count; i++) {
+	for(int i = num_processed; i < reads->count; i++) {
 		read_t* read = &(reads->reads[i]);
 		eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
 		print_aln2sam(samFile, annotations, read);
