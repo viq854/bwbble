@@ -19,7 +19,7 @@
 #define STATE_D 2
 
 #define MAX_DIFF 5
-#define MAX_ALN_PATH 132 //(MAX_DIFF + READ_LENGTH)
+#define ALN_PATH_ALLOC 132 //(MAX_DIFF + READ_LENGTH)
 #define MAX_SNPS 5
 
 #define ALN_NOMATCH 0
@@ -87,7 +87,7 @@ typedef struct {
 	int num_gape;
 	int num_snps;
 	int aln_length;
-	int aln_path[MAX_ALN_PATH];
+	int* aln_path;
 } aln_t;
 
 typedef struct {
@@ -116,7 +116,7 @@ typedef struct {
 
 	// edit transcript
 	//uint8_t aln_length;
-	int aln_path[MAX_ALN_PATH];
+	int* aln_path;
 } aln_entry_t;
 
 

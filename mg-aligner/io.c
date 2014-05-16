@@ -237,11 +237,17 @@ reads_t* fastq2reads(char *readsFname) {
 		exit(1);
 	}
 	reads_t *reads = (reads_t*) calloc(1, sizeof(reads_t));
-	reads->reads = (read_t*) malloc(MAX_NUM_READS*sizeof(read_t));
+	int allocatedReads = NUM_READS_ALLOC;
+	reads->reads = (read_t*) malloc(allocatedReads*sizeof(read_t));
 	reads->count = 0;
 
 	char c;
 	while(!feof(readsFile)) {
+		if (reads->count >= allocatedReads) {
+			allocatedReads += NUM_READS_ALLOC;
+			reads->reads = (read_t*) realloc(reads->reads, allocatedReads*sizeof(read_t));
+		}
+		
 		read_t* read = &(reads->reads[reads->count]);
 
 		c = (char) getc(readsFile);
@@ -276,12 +282,10 @@ reads_t* fastq2reads(char *readsFname) {
 		c = (char) getc(readsFile);
 		while (c != '\n' && !feof(readsFile)) {
 			if (readLen >= allocatedReadLen) {
-				//printf("Loading reads: readLen = %u, allocReadLen = %u, reallocing...", readLen, allocatedReadLen);
 				allocatedReadLen += READ_LENGTH;
 				read->seq = (char*) realloc(read->seq, allocatedReadLen*sizeof(char));
 				read->rc = (char*) realloc(read->rc, allocatedReadLen*sizeof(char));
 				read->qual = (char*) realloc(read->qual, allocatedReadLen*sizeof(char));
-				//printf(" Success. \n");
 			}
 			read->seq[readLen] = nt4_table[(int) c];
 			c = (char) getc(readsFile);
@@ -322,12 +326,9 @@ reads_t* fastq2reads(char *readsFname) {
 			read->rc[read->len-1-i] = nt4_complement[(int)read->seq[i]];
 		}
 		reads->count++;
-		if(reads->count > MAX_NUM_READS) {
-			printf("Warning: The number of reads in %s exceeds the maximum number of reads allowed (= %d). "
-					"The remaining read sequences will be ignored.\n", readsFname, MAX_NUM_READS);
-			break;
-		}
 	}
+	printf("Loaded %d reads from %s.\n", reads->count, readsFname);
+	
 	fclose(readsFile);
 	return reads;
 }
@@ -384,6 +385,7 @@ void free_reads(reads_t* reads) {
 		if(reads->reads[i].seq) free(reads->reads[i].seq);
 		if(reads->reads[i].rc) free(reads->reads[i].rc);
 		if(reads->reads[i].qual) free(reads->reads[i].qual);
+		if(reads->reads[i].aln_path) free(reads->reads[i].aln_path);
 		if(reads->reads[i].mref_pos) free(reads->reads[i].mref_pos);
 	}
 	free(reads->reads);

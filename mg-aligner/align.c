@@ -252,6 +252,9 @@ alns_t* init_alignments() {
 }
 
 void free_alignments(alns_t* alns) {
+	for(int i = 0; i < alns->num_entries; i++) {
+		if(alns->entries[i].aln_path) free(alns->entries[i].aln_path);
+	}
 	free(alns->entries);
 	free(alns);
 }
@@ -284,7 +287,8 @@ void add_alignment(aln_entry_t* e, const bwtint_t L, const bwtint_t U, int score
 	alt->U = U;
 	alt->score = score;
 	alt->aln_length = e->aln_length;
-	memcpy(&(alt->aln_path), &(e->aln_path), e->aln_length*sizeof(int));
+	alt->aln_path = (int*) malloc(e->aln_length*sizeof(int));
+	memcpy(alt->aln_path, &(e->aln_path), e->aln_length*sizeof(int));
 	alns->num_entries++;
 }
 
@@ -668,7 +672,8 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 				read->num_gape = aln.num_gape;
 				read->aln_score = aln.score;
 				read->aln_length = aln.aln_length;
-				memcpy(&(read->aln_path), aln.aln_path, aln.aln_length*sizeof(int));
+				read->aln_path = (int*) malloc(aln.aln_length*sizeof(int));
+				memcpy(read->aln_path, aln.aln_path, aln.aln_length*sizeof(int));
 				// pick one of the matches (TODO: pick randomly from the L,U range)
 				read->aln_sa = aln.L;// + (bwtint_t)((aln.U - aln.L + 1));
 				// determine the position and strand of the mapping
@@ -679,7 +684,7 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 					read->aln_pos = fwd_pos - get_aln_length(aln.aln_path, aln.aln_length) + 1;
 				} else {
 					read->aln_strand = 1; // read rc + fwd ref <=> fwd read/ref rc
-					bwtint_t rc_pos = (BWT->length - 1) - ref_pos - 1;
+					//bwtint_t rc_pos = (BWT->length - 1) - ref_pos - 1;
 					//read->aln_pos = rc_pos - get_aln_length(aln.aln_path, aln.aln_length) + 1 - (BWT->length-1)/2;
 					read->aln_pos = ref_pos;
 				}

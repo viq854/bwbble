@@ -8,7 +8,7 @@
 #define ANN_ALLOC_LEN				256
 #define READ_LENGTH 				150
 #define MAX_SEQ_NAME_LEN 			256
-#define MAX_NUM_READS 				1000000
+#define NUM_READS_ALLOC 			1000000
 
 // Compression
 #define BITS_PER_CHAR               4 // number of bits per character in the BWT
@@ -181,7 +181,7 @@ typedef struct {
 	bwtint_t aln_pos; // position in the reference
 	bwtint_t aln_sa;
 	int aln_length;
-	int aln_path[MAX_ALN_PATH];
+	int* aln_path;
 } read_t;
 
 // collection of reads

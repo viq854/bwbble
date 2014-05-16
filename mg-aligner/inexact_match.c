@@ -51,7 +51,6 @@ int align_reads_inexact(bwt_t *BWT, reads_t* reads, sa_intv_list_t* precalc_sa_i
 				// discard reads that have N's in the last PRECALC_INTERVAL_LENGTH bases (<0 result from read_index)
 				int read_index = read2index(read->rc, read->len);
 				if(read_index < 0) {
-					//printf("Read %d index < 0\n", i);
 					continue;
 				}
 				precalc_sa_intervals = &(precalc_sa_intervals_table[read_index]);
@@ -270,7 +269,7 @@ void inexact_match(bwt_t * BWT, char *read, int readLen, priority_heap_t* heap, 
 	heap_reset(heap);
 	if(precalc_sa_intervals != NULL) {
 		if (precalc_sa_intervals->size != 0) {
-			int aln_path[MAX_ALN_PATH] = { 0 };
+			int aln_path[ALN_PATH_ALLOC] = { 0 };
             sa_intv_t* intv = precalc_sa_intervals->first_intv;
 			for(int i = 0; i < precalc_sa_intervals->size; i++) {
 				heap_push(heap, readLen - PRECALC_INTERVAL_LENGTH, intv->L, intv->U, 0, 0, 0, 0, 0, PRECALC_INTERVAL_LENGTH-1, aln_path, params);
@@ -533,6 +532,9 @@ priority_heap_t *heap_init(const aln_params_t *p) {
 
 void heap_free(priority_heap_t *heap) {
 	for (int i = 0; i < heap->num_buckets; i++) {
+		for (int j = 0; j < heap->num_entries; j++) {
+			free(heap->buckets[i].entries[j].aln_path);
+		}
 		free(heap->buckets[i].entries);
 	}
 	free(heap->buckets);
@@ -577,8 +579,14 @@ void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtin
 	p->num_snps = num_snps;
 	p->aln_length = 0;
 	if(aln_path != NULL) {
-		memset(&(p->aln_path), 0, MAX_ALN_PATH*sizeof(int));
-		memcpy(&(p->aln_path), aln_path, aln_length*sizeof(int));
+		if(p->aln_path == NULL) {
+			p->aln_path = (int*) malloc(ALN_PATH_ALLOC * sizeof(int));
+		} else if (aln_length > ALN_PATH_ALLOC) { // expected to rarely occur (won't keep alloc length)
+			p->aln_path = (int*) realloc(p->aln_path, 2*ALN_PATH_ALLOC*sizeof(int));
+			memset(p->aln_path, 0, 2*ALN_PATH_ALLOC*sizeof(int));
+		}
+		memset(p->aln_path, 0, ALN_PATH_ALLOC*sizeof(int));
+		memcpy(p->aln_path, aln_path, aln_length*sizeof(int));
 		p->aln_path[aln_length] = state;
 		p->aln_length = aln_length + 1;
 	}
