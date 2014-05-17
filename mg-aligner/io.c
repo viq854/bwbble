@@ -171,7 +171,7 @@ fasta_annotations_t* annf2ann(char *annFname) {
 
 	for(int i = 0; i < annotations->num_seq; i++) {
 		seq_annotation_t* seqAnnotation = &(annotations->seq_anns[i]);
-		fscanf(annFile, "%[^\n\t]\t%llu\t%llu\n", &(seqAnnotation->name), &(seqAnnotation->start_index), &(seqAnnotation->end_index));
+		fscanf(annFile, "%[^\n\t]\t%llu\t%llu\n",(char*) &(seqAnnotation->name), &(seqAnnotation->start_index), &(seqAnnotation->end_index));
 	}
 	fclose(annFile);
 	return annotations;

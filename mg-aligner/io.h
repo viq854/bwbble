@@ -181,7 +181,7 @@ typedef struct {
 	bwtint_t aln_pos; // position in the reference
 	bwtint_t aln_sa;
 	int aln_length;
-	int* aln_path;
+	char* aln_path;
 } read_t;
 
 // collection of reads

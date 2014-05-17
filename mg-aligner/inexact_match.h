@@ -46,7 +46,7 @@ priority_heap_t *heap_init(const aln_params_t *p);
 void heap_free(priority_heap_t *heap);
 void heap_reset(priority_heap_t *heap);
 void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtint_t U, const int num_mm, const int num_gapo, const int num_gape,
-		const int state, const int is_diff, const int aln_length, const int* aln_path, const aln_params_t *params);
+		const int state, const int is_diff, const int aln_length, const char* aln_path, const aln_params_t *params);
 void heap_pop(priority_heap_t *heap, aln_entry_t* e);
 
 #endif

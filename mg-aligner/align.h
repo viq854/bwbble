@@ -19,7 +19,7 @@
 #define STATE_D 2
 
 #define MAX_DIFF 5
-#define ALN_PATH_ALLOC 132 //(MAX_DIFF + READ_LENGTH)
+#define ALN_PATH_ALLOC 256
 #define MAX_SNPS 5
 
 #define ALN_NOMATCH 0
@@ -87,7 +87,7 @@ typedef struct {
 	int num_gape;
 	int num_snps;
 	int aln_length;
-	int* aln_path;
+	char* aln_path;
 } aln_t;
 
 typedef struct {
@@ -116,12 +116,12 @@ typedef struct {
 
 	// edit transcript
 	//uint8_t aln_length;
-	int* aln_path;
+	char aln_path[ALN_PATH_ALLOC];
 } aln_entry_t;
 
 
 // Read Alignment
-int align_reads(char* fastaFname, char* readsFname, aln_params_t* params);
+int align_reads(char* fastaFname, char* readsFname, char* alnsFname, aln_params_t* params);
 
 // SA Intervals Operations
 void add_sa_interval(sa_intv_list_t* intv_list, bwtint_t L, bwtint_t U);

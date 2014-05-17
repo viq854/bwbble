@@ -37,13 +37,13 @@ void set_default_aln_params(aln_params_t* params) {
 	params->n_threads = 1;
 }
 
-int align_reads(char* fastaFname, char* readsFname, aln_params_t* params) {
+int align_reads(char* fastaFname, char* readsFname, char* alnsFname, aln_params_t* params) {
 	printf("**** BWBBLE Read Alignment ****\n");
 	char* bwtFname  = (char*) malloc(strlen(fastaFname) + 5);
-	char* alnsFname  = (char*) malloc(strlen(fastaFname) + 5);
+	//char* alnsFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* preFname = (char*) malloc(strlen(fastaFname) + 5);
 	sprintf(bwtFname, "%s.bwt", fastaFname);
-	sprintf(alnsFname, "%s.aln", fastaFname);
+	//sprintf(alnsFname, "%s.aln", fastaFname);
 	sprintf(preFname, "%s.pre", fastaFname);
 	remove(alnsFname); // remove an older .aln file (if it exists)
 
@@ -81,7 +81,7 @@ int align_reads(char* fastaFname, char* readsFname, aln_params_t* params) {
 	free_reads(reads);
 	if(sa_intv_table) free_sa_interval_list(sa_intv_table);
 	free(bwtFname);
-	free(alnsFname);
+	//free(alnsFname);
 	free(preFname);
 	return 0;
 }
@@ -287,8 +287,8 @@ void add_alignment(aln_entry_t* e, const bwtint_t L, const bwtint_t U, int score
 	alt->U = U;
 	alt->score = score;
 	alt->aln_length = e->aln_length;
-	alt->aln_path = (int*) malloc(e->aln_length*sizeof(int));
-	memcpy(alt->aln_path, &(e->aln_path), e->aln_length*sizeof(int));
+	alt->aln_path = (char*) malloc(e->aln_length*sizeof(char));
+	memcpy(alt->aln_path, &(e->aln_path), e->aln_length*sizeof(char));
 	alns->num_entries++;
 }
 
@@ -331,7 +331,7 @@ void alns2alnf(alns_t* alns, FILE* alnFile) {
 		fprintf(alnFile, "%d\t%llu\t%llu\t%d\t%d\t%d\t%d\t", aln.score, aln.L, aln.U,
 				aln.num_mm, aln.num_gapo, aln.num_gape, /*aln.num_snps,*/ aln.aln_length);
 		for(int j = aln.aln_length-1; j >= 0; j--) {
-			fprintf(alnFile, "%d ", aln.aln_path[j]);
+			fprintf(alnFile, "%c ", aln.aln_path[j]);
 		}
 		fprintf(alnFile, "\n");
 	}
@@ -362,8 +362,9 @@ alns_t* alnsf2alns(int* n_alns, char *alnFname) {
 			aln_t* aln = &(read_alns->entries[i]);
 			fscanf(alnFile, "%d\t%llu\t%llu\t%d\t%d\t%d\t%d\t", &(aln->score), &(aln->L), &(aln->U),
 					&(aln->num_mm), &(aln->num_gapo), &(aln->num_gape), /*&(aln->num_snps),*/ &(aln->aln_length));
+			aln->aln_path = (char*) malloc(aln->aln_length*sizeof(char));
 			for(int j = 0; j < aln->aln_length; j++) {
-				fscanf(alnFile, "%d ", &(aln->aln_path[j]));
+				fscanf(alnFile, "%c ", &(aln->aln_path[j]));
 			}
 			fscanf(alnFile,"\n");
 		}
@@ -636,7 +637,7 @@ int mapq(const read_t *read, int max_mm, int is_multiref) {
 	return (23 < q)? 0 : 23 - q;
 }
 
-int get_aln_length(int* aln_path, int path_length) {
+int get_aln_length(char* aln_path, int path_length) {
 	int aln_length = path_length;
 	// discard all the insertions
 	for(int i = 0; i < path_length; i++) {
@@ -672,8 +673,8 @@ void eval_aln(read_t* read, alns_t* alns, bwt_t* BWT, int is_multiref, int max_m
 				read->num_gape = aln.num_gape;
 				read->aln_score = aln.score;
 				read->aln_length = aln.aln_length;
-				read->aln_path = (int*) malloc(aln.aln_length*sizeof(int));
-				memcpy(read->aln_path, aln.aln_path, aln.aln_length*sizeof(int));
+				read->aln_path = (char*) malloc(aln.aln_length*sizeof(char));
+				memcpy(read->aln_path, aln.aln_path, aln.aln_length*sizeof(char));
 				// pick one of the matches (TODO: pick randomly from the L,U range)
 				read->aln_sa = aln.L;// + (bwtint_t)((aln.U - aln.L + 1));
 				// determine the position and strand of the mapping

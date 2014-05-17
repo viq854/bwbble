@@ -269,7 +269,7 @@ void inexact_match(bwt_t * BWT, char *read, int readLen, priority_heap_t* heap, 
 	heap_reset(heap);
 	if(precalc_sa_intervals != NULL) {
 		if (precalc_sa_intervals->size != 0) {
-			int aln_path[ALN_PATH_ALLOC] = { 0 };
+			char aln_path[ALN_PATH_ALLOC] = { 0 };
             sa_intv_t* intv = precalc_sa_intervals->first_intv;
 			for(int i = 0; i < precalc_sa_intervals->size; i++) {
 				heap_push(heap, readLen - PRECALC_INTERVAL_LENGTH, intv->L, intv->U, 0, 0, 0, 0, 0, PRECALC_INTERVAL_LENGTH-1, aln_path, params);
@@ -532,9 +532,6 @@ priority_heap_t *heap_init(const aln_params_t *p) {
 
 void heap_free(priority_heap_t *heap) {
 	for (int i = 0; i < heap->num_buckets; i++) {
-		for (int j = 0; j < heap->num_entries; j++) {
-			free(heap->buckets[i].entries[j].aln_path);
-		}
 		free(heap->buckets[i].entries);
 	}
 	free(heap->buckets);
@@ -551,7 +548,7 @@ void heap_reset(priority_heap_t *heap) {
 
 void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtint_t U,
 							const int num_mm, const int num_gapo, const int num_gape,
-							const int state, const int num_snps, const int aln_length, const int* aln_path,
+							const int state, const int num_snps, const int aln_length, const char* aln_path,
 							const aln_params_t *params) {
 	// compute the alignment score for this entry
 	int score = aln_score(num_mm, num_gapo, num_gape, params);
@@ -579,14 +576,8 @@ void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtin
 	p->num_snps = num_snps;
 	p->aln_length = 0;
 	if(aln_path != NULL) {
-		if(p->aln_path == NULL) {
-			p->aln_path = (int*) malloc(ALN_PATH_ALLOC * sizeof(int));
-		} else if (aln_length > ALN_PATH_ALLOC) { // expected to rarely occur (won't keep alloc length)
-			p->aln_path = (int*) realloc(p->aln_path, 2*ALN_PATH_ALLOC*sizeof(int));
-			memset(p->aln_path, 0, 2*ALN_PATH_ALLOC*sizeof(int));
-		}
-		memset(p->aln_path, 0, ALN_PATH_ALLOC*sizeof(int));
-		memcpy(p->aln_path, aln_path, aln_length*sizeof(int));
+		memset(&(p->aln_path), 0, ALN_PATH_ALLOC*sizeof(int));
+		memcpy(&(p->aln_path), aln_path, aln_length*sizeof(int));
 		p->aln_path[aln_length] = state;
 		p->aln_length = aln_length + 1;
 	}

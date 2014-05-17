@@ -45,7 +45,7 @@ static int usage() {
 }
 
 static int align_usage() {
-	printf("Usage: bwbble align [options] seq_fasta reads_fastq [output_aln] \n");
+	printf("Usage: bwbble align [options] seq_fasta reads_fastq output_aln \n");
 	printf("Options: M    mismatch penalty\n");
 	printf("         O    gap open penalty\n");
 	printf("         E    gap extend penalty\n");
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 		index_bwt(argv[2]);
 	}
 	else if (strcmp(argv[1], "align") == 0) {
-		if(argc < 4) {
+		if(argc < 5) {
 			align_usage();
 			exit(1);
 		}
@@ -97,10 +97,11 @@ int main(int argc, char *argv[]) {
 					default: return 1;
 				}
 		}
-		align_reads(argv[optind+1], argv[optind+2], params);
+		
+		align_reads(argv[optind+1], argv[optind+2], argv[optind+3], params);
 		free(params);
 	} else if (strcmp(argv[1], "aln2sam") == 0) {
-		if(argc < 5) {
+		if(argc < 6) {
 			printf("Usage: bwbble aln2sam [-S, -n] seq_fasta reads_fastq alns_aln out_sam \n");
 			exit(1);
 		}
@@ -108,11 +109,11 @@ int main(int argc, char *argv[]) {
 		int max_diff = 6;
 		int n_occ = 3;
 		int c;
-		while ((c = getopt(argc-1, argv+1, "n:S:occ")) >= 0) {
+		while ((c = getopt(argc-1, argv+1, "n:S:o")) >= 0) {
 			switch (c) {
 				case 'S': is_multiref = 0; break;
 				case 'n': max_diff = atoi(optarg); break;
-				case 'occ': n_occ = atoi(optarg); break;
+				case 'o': n_occ = atoi(optarg); break;
 				case '?': printf("Unknown option \n"); break;
 				default: return 1;
 			}
