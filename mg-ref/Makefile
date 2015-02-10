@@ -6,7 +6,8 @@ DFLAGS=		#-DHAVE_PTHREAD
 DBGFLAGS= 	#-DDEBUG_ENABLED
 OBJS_COMB=	comb.o
 OBJS_PREP=	data_prep.o
-PROG=		comb data_prep
+OBJS_SPAD=	sam_pad.o
+PROG=		comb data_prep sam_pad
 INCLUDES=	
 LIBS=		#-lm -lz -lpthread
 
@@ -23,6 +24,8 @@ comb:$(OBJS_COMB)
 	$(CXX) $(CFLAGS) $(DFLAGS) $(OBJS_COMB) -o $@ $(LIBS)
 data_prep:$(OBJS_PREP)
 	$(CXX) $(CFLAGS) $(DFLAGS) $(OBJS_PREP) -o $@ $(LIBS)
+sam_pad:$(OBJS_SPAD)
+	$(CXX) $(CFLAGS) $(DFLAGS) $(OBJS_SPAD) -o $@ $(LIBS)
 
 clean:
 	rm -f gmon.out *.o a.out $(PROG) *~ *.a

@@ -2,7 +2,7 @@
 // Extract SNPs and INDELs from vcf file
 // Write SNPs into SNP.extract.chrxx.data
 // Write INDELs into INDEL.extract.chrxx.data
-// Lin Huang, 24 May 2012
+// Lin Huang <linhuang@cs.stanford.edu>, 24 May 2012
 ///////////////////////////////////////////
 
 #include <iostream>

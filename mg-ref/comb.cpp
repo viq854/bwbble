@@ -3,7 +3,7 @@
 // genome (fasta file)
 // Read SNPs from SNP.extract.chrxx.data
 // Read INDELs from INDEL.extract.chrxx.data
-// Lin Huang, 24 May 2012
+// Lin Huang <linhuang@cs.stanford.edu>, 24 May 2012
 ///////////////////////////////////////////
 
 
@@ -15,12 +15,9 @@
 using namespace std;
 
 #define MAX_CHR_LENGTH 1000000000 
-#define WINDOW_SIZE 124
 #define ALPHABET_SIZE 16
 #define BASE_SIZE 4
 #define BASE_SET_SIZE 8
-#define MAX_OCC 1090
-#define OCC_THRESHOLD 3
 
 static const int gray_code[] =      { 0,   1,   3,   2,   6,   7,   5,   4,  12,  13,  15,  14,  10,  11,   9,   8};
 static const char abbr[] = {'$', 'T', 'K', 'G', 'S', 'B', 'Y', 'C', 'M', 'H', 'N', 'V', 'R', 'D', 'W', 'A'};
@@ -30,6 +27,15 @@ static const char base_set[BASE_SIZE][BASE_SET_SIZE] = {{'A', 'N', 'M', 'H', 'V'
                                 {'C', 'N', 'S', 'B', 'Y', 'M', 'H', 'V'}, /*C*/
                                 {'G', 'N', 'K', 'S', 'B', 'V', 'R', 'D'}, /*G*/
                                 {'T', 'N', 'K', 'B', 'Y', 'H', 'D', 'W'}}; /*T*/
+
+typedef struct
+{
+	int window_size;
+	int min_occ;
+	int max_occ;
+	int min_occ_specified;
+        int max_occ_specified;
+} pars_t;
 
 long long get_min(long long a, long long b)
 {
@@ -60,7 +66,7 @@ int inSet(char test, char test_base)
   	}
 }
 
-void print_multigenome(string multifasta_filename, string bubble_filename, char *chromosome, long long start, string header, long long flag, long long & total_snp_number, long long & low_end_snp_number, long long & high_end_snp_number)
+void print_multigenome(string multifasta_filename, string bubble_filename, char *chromosome, long long start, string header, long long flag, long long & total_snp_number, long long & low_end_snp_number, long long & high_end_snp_number, pars_t* pars)
 {
   	string chr;
   	stringstream line_stream(header);
@@ -97,13 +103,13 @@ void print_multigenome(string multifasta_filename, string bubble_filename, char 
 	  	int bit[BASE_SIZE], total;
   		while(ext >> pos >> ref >> alt >> occ)
 	  	{
-			if(occ < OCC_THRESHOLD) 
+			if(pars->min_occ_specified && occ < pars->min_occ) 
 			{
 				low_end_snp_number++;
 				continue;
 			}
 
-			if(occ > MAX_OCC - OCC_THRESHOLD)
+			if(pars->max_occ_specified && occ > pars->max_occ)
 			{
 				high_end_snp_number++;
 				chromosome[pos] = alt;
@@ -160,7 +166,7 @@ void print_multigenome(string multifasta_filename, string bubble_filename, char 
   	bubble.close();
 }
 
-void insert_SNP(string fasta_filename, string multifasta_filename, string bubble_filename)
+void insert_SNP(string fasta_filename, string multifasta_filename, string bubble_filename, pars_t* pars)
 {
   	ifstream fasta;
   	fasta.open(fasta_filename.c_str());
@@ -178,7 +184,7 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
     		{
       			if(g)
       			{
-        			print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number);
+        			print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number, pars);
       			}
       			g++;
 
@@ -193,7 +199,7 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
       			}
     		}
   	}
-  	print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number);
+  	print_multigenome(multifasta_filename, bubble_filename, chromosome, start, header, g, total_snp_number, low_end_snp_number, high_end_snp_number, pars);
 	printf("total snp number is %lld\n", total_snp_number);
 	printf("low end snp number is %lld\n", low_end_snp_number);
 	printf("high end snp number is %lld\n", high_end_snp_number);
@@ -201,12 +207,13 @@ void insert_SNP(string fasta_filename, string multifasta_filename, string bubble
   	fasta.close();
 }
 
-void print_bubble(string chr, string bubble_filename, string data_filename, char* chromosome, long long& indel_count, long long start, int &flag, long long & total_indel_number, long long & low_end_indel_number)
+void print_bubble(string chr, string schr, string bubble_filename, string data_filename, char* chromosome, long long& indel_count, long long start, int &flag, long long & total_indel_number, long long & low_end_indel_number, pars_t* pars)
 {
   	string extract_filename;
   	long long pos, occ;
   	int i;
   	string indel_ref, indel_alt;
+	long long A, B_minus_A, C, D_minus_C, ref_len, alt_len;
 
   	ifstream ext;
   	ofstream bubble;
@@ -223,7 +230,7 @@ void print_bubble(string chr, string bubble_filename, string data_filename, char
 	}
 
   	extract_filename = "mg-ref-output/INDEL.extract.chr";
-  	extract_filename += chr;
+  	extract_filename += schr;
 	extract_filename += ".data";
   	ext.open(extract_filename.c_str());
 
@@ -231,17 +238,20 @@ void print_bubble(string chr, string bubble_filename, string data_filename, char
 	{
 	  	while(ext >> pos >> indel_ref >> indel_alt >> occ)
   		{
-			if(occ < OCC_THRESHOLD) 
-			{
-				low_end_indel_number++;
-				continue;
-			}
-
 			total_indel_number++;
 
-	    		bubble << ">" << "bubble" << indel_count << " " << chr << " " << get_max(pos - WINDOW_SIZE, 1) << endl;
-			data << chr << " " << get_max(pos - WINDOW_SIZE, 1) << " " << get_min(WINDOW_SIZE, pos - 1) << " " << indel_alt.size() << " " << get_min(WINDOW_SIZE, start - pos - indel_ref.length()) << " " << indel_ref.size() << endl;
-    			for(i = get_min(WINDOW_SIZE, pos - 1); i > 0; i--)
+	    		bubble << ">" << "bubble" << indel_count << " " << chr << " " << get_max(pos - pars->window_size, 1) << endl;
+			A = get_max(pos - pars->window_size, 1);
+			B_minus_A = get_min(pars->window_size, pos - 1);
+			C = pos + indel_ref.length();
+			D_minus_C = get_min(pars->window_size, start - pos - indel_ref.length()) - 1;
+			if(indel_ref[0] != '.') ref_len = indel_ref.length(); else ref_len = 0;
+			if(indel_alt[0] != '.') alt_len = indel_alt.length(); else alt_len = 0;
+
+			data << chr << endl;
+			data << A << "\t" << B_minus_A << "\t" << C << "\t" << D_minus_C << "\t" << ref_len << "\t" << alt_len << endl;
+
+    			for(i = get_min(pars->window_size, pos - 1); i > 0; i--)
 	    		{
       				bubble << chromosome[pos - i];
     			}
@@ -249,7 +259,7 @@ void print_bubble(string chr, string bubble_filename, string data_filename, char
     			{
       				bubble << indel_alt;
 	    		}
-    			for(i = 0; i < get_min(WINDOW_SIZE, start - pos - indel_ref.length()); i++)
+    			for(i = 0; i < get_min(pars->window_size, start - pos - indel_ref.length()); i++)
     			{
       				bubble << chromosome[pos + indel_ref.length() + i];
 	    		}
@@ -264,11 +274,11 @@ void print_bubble(string chr, string bubble_filename, string data_filename, char
 	data.close();
 }
 
-void comp_bubble(string multifasta_filename, string bubble_filename, string data_filename)
+void comp_bubble(string multifasta_filename, string bubble_filename, string data_filename, pars_t* pars)
 {
   	ifstream multifasta;
   	multifasta.open(multifasta_filename.c_str());
-  	string line, chr;
+  	string line, chr, schr;
   	int total, g = 0, flag = 0;
   	int i, j;
   	long long indel_count = 0, start;
@@ -287,13 +297,16 @@ void comp_bubble(string multifasta_filename, string bubble_filename, string data
       			}
       			else
       			{
-        			print_bubble(chr, bubble_filename, data_filename, chromosome, indel_count, start, flag, total_indel_number, low_end_indel_number);
+        			print_bubble(chr, schr, bubble_filename, data_filename, chromosome, indel_count, start, flag, total_indel_number, low_end_indel_number, pars);
       			}
 
       			start = 1;
+			chr = line;
+			chr.erase(chr.begin());
+
       			stringstream line_stream(line);
-      			line_stream >> chr;
-      			chr.erase(chr.begin());
+      			line_stream >> schr;
+      			schr.erase(schr.begin());
     		}
     		else
     		{
@@ -303,9 +316,8 @@ void comp_bubble(string multifasta_filename, string bubble_filename, string data
       			}
     		}
   	}
-  	print_bubble(chr, bubble_filename, data_filename, chromosome, indel_count, start, flag, total_indel_number, low_end_indel_number);
+  	print_bubble(chr, schr, bubble_filename, data_filename, chromosome, indel_count, start, flag, total_indel_number, low_end_indel_number, pars);
 	printf("total indel number is %lld\n", total_indel_number);
-	printf("low end indel number is %lld\n", low_end_indel_number);
 
   	multifasta.close();
 }
@@ -314,21 +326,55 @@ static int usage()
 {
   	fprintf(stderr, "\n");
   	fprintf(stderr, "Usage: comb <input.fasta> <output.fasta> <output_bubble.fasta> <bubble.data>\n");
+	fprintf(stderr, "Option:  -w INT  window size [default: 124]\n");
+	fprintf(stderr, "         -i INT  minimum occurrence\n");
+	fprintf(stderr, "         -a INT  maximum occurrence\n");
   	fprintf(stderr, "\n");
   	return 1;
 }
 
+void set_default_pars(pars_t* pars)
+{
+	pars->window_size = 124;
+	pars->min_occ_specified = 0;
+	pars->max_occ_specified = 0;
+}
+
 int main(int argc, char* argv[])
 {
-  	if(argc != 5) return usage();
+  	if(argc < 5) return usage();
 
-  	string fasta_filename = argv[1];
-  	string multifasta_filename = argv[2];
-  	string bubble_filename = argv[3];
-	string data_filename = argv[4];
+	pars_t* pars = (pars_t*) calloc(1, sizeof(pars_t));
+	set_default_pars(pars);
+	int c;
+	while ((c = getopt(argc, argv, "w:i:a:")) >= 0) 
+	{
+			switch (c) {
+				case 'w': 	pars->window_size = atoi(optarg); 
+					  	if(pars->window_size < 0)
+					  	{
+							fprintf(stderr, "window size shouldn't be negative.\n");
+							return 1;
+					  	}
+					  	break;
+				case 'i':       pars->min_occ_specified = 1;
+						pars->min_occ = atoi(optarg);
+                                                break;
+				case 'a':       pars->max_occ_specified = 1;
+						pars->max_occ = atoi(optarg);
+                                                break;
+				case '?': 	usage(); return 1;
+				default: 	return 1;
+			}
+	}
 
-  	insert_SNP(fasta_filename, multifasta_filename, bubble_filename);
-  	comp_bubble(multifasta_filename, bubble_filename, data_filename);
+  	string fasta_filename = argv[optind];
+  	string multifasta_filename = argv[optind+1];
+  	string bubble_filename = argv[optind+2];
+	string data_filename = argv[optind+3];
+
+  	insert_SNP(fasta_filename, multifasta_filename, bubble_filename, pars);
+  	comp_bubble(multifasta_filename, bubble_filename, data_filename, pars);
 
 	return 0;
 }
