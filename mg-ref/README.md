@@ -36,20 +36,14 @@ This command parses the output sam file of mg-aligner. For the reads aligned to 
 
 (a)
 
-        12345 67890 12345 6
-
-ref     ACGTA ATATA TAGGC T
-
-bubble  ACG-- --ATA TA
-
-        123     456 78
+                12345 67890 12345 6
+        ref     ACGTA ATATA TAGGC T
+        bubble  ACG-- --ATA TA
+                123     456 78
 
 (b)
 
-        12345 67890 12--345 6
-
-ref     ACGTA ATATA TA--GGC T
-
-bubble         TATA TACTGGC T
-
-               1234 5678901 2
+                12345 67890 12--345 6
+        ref     ACGTA ATATA TA--GGC T
+        bubble         TATA TACTGGC T
+                       1234 5678901 2
