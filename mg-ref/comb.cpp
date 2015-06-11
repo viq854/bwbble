@@ -12,6 +12,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <sstream>
+#include <getopt.h>
 using namespace std;
 
 #define MAX_CHR_LENGTH 1000000000 
