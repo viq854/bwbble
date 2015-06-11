@@ -13,7 +13,7 @@
 // Occurrence values interval (only values O(_,k) where k is a factor of OCC_INTERVAL are stored)
 #define OCC_INTERVAL 128
 // Suffix array values interval (SA values will be stored only at this interval)
-#define SA_INTERVAL 2
+#define SA_INTERVAL 32
 
 // BWT
 typedef struct {
