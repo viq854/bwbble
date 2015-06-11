@@ -77,52 +77,25 @@ void store_bwt(const bwt_t* BWT, const char* bwtFname) {
 	fclose(bwtFile);
 }
 
-// Load the BWT from a file
-bwt_t* load_bwt(const char* bwtFname) {
-	FILE* bwtFile = (FILE*) fopen(bwtFname, "rb");
-	if (bwtFile == NULL) {
-		printf("load_bwt: Cannot open the BWT file: %s!\n", bwtFname);
-		exit(1);
-	}
-	bwt_t *BWT = (bwt_t*) calloc(1, sizeof(bwt_t));
-	fread(&BWT->length, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_words, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_sa, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_occ, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->sa0_index, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->C, sizeof(bwtint_t), ALPHABET_SIZE+1, bwtFile);
-	BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
-	//BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
-	BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
-	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
-	if((BWT->bwt == 0) || (BWT->O == 0) || (BWT->SA == 0)) {
-		printf("Could not allocate memory for the BWT index. \n");
-		exit(1);
-	}
-	fread(BWT->bwt, sizeof(uint32_t), BWT->num_words, bwtFile);
-	fread(BWT->O, sizeof(bwtint_t), BWT->num_occ*ALPHABET_SIZE, bwtFile);
-	fread(BWT->SA, sizeof(bwtint_t), BWT->num_sa, bwtFile);
-
-	generate_occ_table(BWT);
-
-	fclose(bwtFile);
-	return BWT;
+void load_bwt_error(const char* bwtFname) {
+	printf("load_bwt: Could not read BWT from file: %s!\n", bwtFname);
+	exit(1);
 }
 
 // Load the BWT from a file (for alignment only, SA not necessary)
-bwt_t* load_bwt_aln(const char* bwtFname) {
+bwt_t* load_bwt(const char* bwtFname, int loadSA) {
 	FILE* bwtFile = (FILE*) fopen(bwtFname, "rb");
 	if (bwtFile == NULL) {
 		printf("load_bwt: Cannot open the BWT file: %s!\n", bwtFname);
 		exit(1);
 	}
 	bwt_t *BWT = (bwt_t*) calloc(1, sizeof(bwt_t));
-	fread(&BWT->length, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_words, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_sa, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->num_occ, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->sa0_index, sizeof(bwtint_t), 1, bwtFile);
-	fread(&BWT->C, sizeof(bwtint_t), ALPHABET_SIZE+1, bwtFile);
+	if(fread(&BWT->length, sizeof(bwtint_t), 1, bwtFile) < 1) load_bwt_error(bwtFname);
+	if(fread(&BWT->num_words, sizeof(bwtint_t), 1, bwtFile) < 1) load_bwt_error(bwtFname);
+	if(fread(&BWT->num_sa, sizeof(bwtint_t), 1, bwtFile) < 1) load_bwt_error(bwtFname);
+	if(fread(&BWT->num_occ, sizeof(bwtint_t), 1, bwtFile) < 1) load_bwt_error(bwtFname);
+	if(fread(&BWT->sa0_index, sizeof(bwtint_t), 1, bwtFile) < 1) load_bwt_error(bwtFname);
+	if(fread(&BWT->C, sizeof(bwtint_t), ALPHABET_SIZE+1, bwtFile) < ALPHABET_SIZE+1) load_bwt_error(bwtFname);
 	//BWT->bwt = (uint32_t *) _mm_malloc(BWT->num_words*sizeof(uint32_t), 16);
 	BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
 	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
@@ -130,8 +103,17 @@ bwt_t* load_bwt_aln(const char* bwtFname) {
 		printf("Could not allocate memory for the BWT index. \n");
 		exit(1);
 	}
-	fread(BWT->bwt, sizeof(uint32_t), BWT->num_words, bwtFile);
-	fread(BWT->O, sizeof(bwtint_t), BWT->num_occ*ALPHABET_SIZE, bwtFile);
+	if(fread(BWT->bwt, sizeof(uint32_t), BWT->num_words, bwtFile) < BWT->num_words) load_bwt_error(bwtFname);
+	if(fread(BWT->O, sizeof(bwtint_t), BWT->num_occ*ALPHABET_SIZE, bwtFile) < BWT->num_occ*ALPHABET_SIZE) load_bwt_error(bwtFname);
+	
+	if(loadSA != 0) {
+		BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
+		if(BWT->SA == 0) {
+                	printf("Could not allocate memory for the BWT index. \n");
+                	exit(1);
+        	}
+		if(fread(BWT->SA, sizeof(bwtint_t), BWT->num_sa, bwtFile) < BWT->num_sa) load_bwt_error(bwtFname);
+	}
 	generate_occ_table(BWT);
 
 	fclose(bwtFile);
@@ -195,40 +177,40 @@ void free_bwt(bwt_t* BWT) {
 }
 
 void print_bwt(const bwt_t *BWT) {
-	printf("BWT: \n");
-	printf("length = %llu\n", BWT->length);
-	printf("num_words = %llu\n", BWT->num_words);
-	for(bwtint_t i = 0; i < BWT->length; i++) {
-		if (i % 10000 != 0) continue;
-		if(i == BWT->sa0_index) {
-			printf("B[%llu] = %c*\n", i, iupacChar[B(BWT, i)]);
-		} else {
-			printf("B[%llu] = %c\n", i, iupacChar[B(BWT, i)]);
-		}
-	}
-	printf("-----\n");
-	for(bwtint_t i = 0; i < ALPHABET_SIZE; i++) {
-		printf("C[%c] = %llu\n", iupacChar[i], BWT->C[i]);
-	}
-	printf("-----\n");
-	printf("num_occ = %llu\n", BWT->num_occ);
-	for(bwtint_t i = 0; i < BWT->num_occ; i++) {
-		if (i % 10000 != 0) continue;
-		printf("i = %llu: ", i);
-		for(bwtint_t j = 0; j < ALPHABET_SIZE; j++) {
-			printf("O[%llu] = %llu ", j, BWT->O[i*ALPHABET_SIZE+j]);
-		}
-		printf("\n");
-	}
-	printf("-----\n");
-	printf("num_sa = %llu\n", BWT->num_sa);
-	if(BWT->SA) {
-		for(bwtint_t i = 0; i < BWT->num_sa; i++) {
-			if (i % 10000 != 0) continue;
-			printf("SA[%llu] = %llu\n", i, BWT->SA[i]);
-		}
-		printf("-----\n");
-	}
+        printf("BWT: \n");
+        printf("length = %" PRIbwtint_t "\n", BWT->length);
+        printf("num_words = %" PRIbwtint_t "\n", BWT->num_words);
+        for(bwtint_t i = 0; i < BWT->length; i++) {
+                if (i % 10000 != 0) continue;
+                if(i == BWT->sa0_index) {
+                        printf("B[%" PRIbwtint_t "] = %c*\n", i, iupacChar[B(BWT, i)]);
+                } else {
+                        printf("B[%" PRIbwtint_t "] = %c\n", i, iupacChar[B(BWT, i)]);
+                }
+        }
+        printf("-----\n");
+        for(bwtint_t i = 0; i < ALPHABET_SIZE; i++) {
+                printf("C[%c] = %" PRIbwtint_t "\n", iupacChar[i], BWT->C[i]);
+        }
+        printf("-----\n");
+        printf("num_occ = %" PRIbwtint_t "\n", BWT->num_occ);
+        for(bwtint_t i = 0; i < BWT->num_occ; i++) {
+                if (i % 10000 != 0) continue;
+                printf("i = %" PRIbwtint_t ": ", i);
+                for(bwtint_t j = 0; j < ALPHABET_SIZE; j++) {
+                        printf("O[%" PRIbwtint_t "] = %" PRIbwtint_t " ", j, BWT->O[i*ALPHABET_SIZE+j]);
+                }
+                printf("\n");
+        }
+        printf("-----\n");
+        printf("num_sa = %" PRIbwtint_t "\n", BWT->num_sa);
+        if(BWT->SA) {
+                for(bwtint_t i = 0; i < BWT->num_sa; i++) {
+                        if (i % 10000 != 0) continue;
+                        printf("SA[%" PRIbwtint_t "] = %" PRIbwtint_t "\n", i, BWT->SA[i]);
+                }
+                printf("-----\n");
+        }
 }
 
 // Count values

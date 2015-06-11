@@ -104,7 +104,7 @@ void fasta2pac(char *fastaFname, char* pacFname, char* annFname) {
 		// s.t. no match is found spanning multiple sequences
 		*(seq + seqLen) = '$';
 		seqLen++;
-		printf("Done reading a sequence of size %llu from FASTA\n", seqLen);
+		printf("Done reading a sequence of size %" PRIbwtint_t " from FASTA\n", seqLen);
 
 		// pack and store the sequence
 		for(bwtint_t i = 0; i < seqLen; i++) {
@@ -139,12 +139,12 @@ void fasta2pac(char *fastaFname, char* pacFname, char* annFname) {
 	fwrite(&c, 1, 1, pacFile);
 
 	// store annotations info
-	fprintf(annFile, "%llu\t%d\n", totalSeqLen, annotations->num_seq);
+	fprintf(annFile, "%" PRIbwtint_t "\t%d\n", totalSeqLen, annotations->num_seq);
 	for(int i = 0; i < annotations->num_seq; i++) {
 		seq_annotation_t seqAnnotation = annotations->seq_anns[i];
-		fprintf(annFile, "%s\t%llu\t%llu\n", seqAnnotation.name, seqAnnotation.start_index, seqAnnotation.end_index);
+		fprintf(annFile, "%s\t%" PRIbwtint_t "\t%" PRIbwtint_t "\n", seqAnnotation.name, seqAnnotation.start_index, seqAnnotation.end_index);
 	}
-	printf("Done reading FASTA file. Total sequence length read = %llu\n", totalSeqLen);
+	printf("Done reading FASTA file. Total sequence length read = %" PRIbwtint_t "\n", totalSeqLen);
 
 	fclose(fastaFile);
 	fclose(pacFile);
@@ -166,12 +166,18 @@ fasta_annotations_t* annf2ann(char *annFname) {
 
 	fasta_annotations_t* annotations = (fasta_annotations_t*) calloc(1, sizeof(fasta_annotations_t));
 	bwtint_t totalSeqLen;
-	fscanf(annFile, "%llu\t%d\n", &totalSeqLen, &(annotations->num_seq));
+	if(fscanf(annFile, "%" SCNbwtint_t "\t%d\n", &totalSeqLen, &(annotations->num_seq)) != 2) {
+		printf("annf2ann: Could not parse ANN file: %s!\n", annFname);
+                exit(1);
+	}
 	annotations->seq_anns = (seq_annotation_t*) malloc(annotations->num_seq * sizeof(seq_annotation_t));
 
 	for(int i = 0; i < annotations->num_seq; i++) {
 		seq_annotation_t* seqAnnotation = &(annotations->seq_anns[i]);
-		fscanf(annFile, "%[^\n\t]\t%llu\t%llu\n",(char*) &(seqAnnotation->name), &(seqAnnotation->start_index), &(seqAnnotation->end_index));
+		if(fscanf(annFile, "%[^\n\t]\t%" SCNbwtint_t "\t%" SCNbwtint_t "\n",(char*) &(seqAnnotation->name), &(seqAnnotation->start_index), &(seqAnnotation->end_index)) < 3) {
+			printf("annf2ann: Could not parse ANN file: %s!\n", annFname);
+                	exit(1);
+		} 
 	}
 	fclose(annFile);
 	return annotations;
@@ -198,13 +204,19 @@ void pac2seq(char *pacFname, unsigned char** seq, bwtint_t *totalSeqLen) {
 		exit(1);
 	}
 	unsigned char endByte;
-	fread(&endByte, sizeof(unsigned char), 1, pacFile);
+	if(fread(&endByte, sizeof(unsigned char), 1, pacFile) < 1) {
+		printf("pac2seq: Cannot read the PAC file!\n");
+                exit(1);
+	}
 	bwtint_t seqLength = pacFileLen*CHARS_PER_BYTE - endByte;
 
 	// read the packed sequence
 	fseek(pacFile, 0, SEEK_SET);
 	unsigned char* packedSeq = (unsigned char*) malloc(sizeof(char) * pacFileLen);
-	fread(packedSeq, 1, pacFileLen, pacFile);
+	if(fread(packedSeq, 1, pacFileLen, pacFile) < pacFileLen) {
+		printf("pac2seq: Could not read the expected length of the PAC file!\n");
+                exit(1);
+	}
 	fclose(pacFile);
 
 	// unpack the sequence
@@ -325,6 +337,7 @@ reads_t* fastq2reads(char *readsFname) {
 		for(int i = 0; i < read->len; i++) {
 			read->rc[read->len-1-i] = nt4_complement[(int)read->seq[i]];
 		}
+		
 		reads->count++;
 	}
 	printf("Loaded %d reads from %s.\n", reads->count, readsFname);
@@ -366,13 +379,13 @@ void parse_read_mapping(read_t* read) {
 	char* token = strtok(read_name, delimiters);
 	while (token != NULL) {
 		if(token_index == 1) {
-			sscanf(token, "%llu", &read->ref_pos_l);
+			sscanf(token, "%" SCNbwtint_t "", &read->ref_pos_l);
 		} else if(token_index == 2) {
-			sscanf(token, "%llu", &read->ref_pos_r);
+			sscanf(token, "%" SCNbwtint_t "", &read->ref_pos_r);
 		} else if(token_index == 3) {
 			read->strand = (strcmp(token, "nm") == 0) ? 0 : 1;
 		} else if(token_index > 3){
-            sscanf(token, "%llu", &read->mref_pos[token_index-4]);
+            		sscanf(token, "%" SCNbwtint_t "", &read->mref_pos[token_index-4]);
 		}
 		token = strtok(NULL, delimiters);
 		token_index++;

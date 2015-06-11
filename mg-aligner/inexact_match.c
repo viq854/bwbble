@@ -550,6 +550,7 @@ void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtin
 							const int num_mm, const int num_gapo, const int num_gape,
 							const int state, const int num_snps, const int aln_length, const char* aln_path,
 							const aln_params_t *params) {
+	
 	// compute the alignment score for this entry
 	int score = aln_score(num_mm, num_gapo, num_gape, params);
 	heap_bucket_t *hb = &(heap->buckets[score]);
@@ -576,8 +577,8 @@ void heap_push(priority_heap_t *heap, const int i, const bwtint_t L, const bwtin
 	p->num_snps = num_snps;
 	p->aln_length = 0;
 	if(aln_path != NULL) {
-		memset(&(p->aln_path), 0, ALN_PATH_ALLOC*sizeof(int));
-		memcpy(&(p->aln_path), aln_path, aln_length*sizeof(int));
+		memset(&(p->aln_path), 0, ALN_PATH_ALLOC*sizeof(char));
+		memcpy(&(p->aln_path), aln_path, aln_length*sizeof(char));
 		p->aln_path[aln_length] = state;
 		p->aln_length = aln_length + 1;
 	}

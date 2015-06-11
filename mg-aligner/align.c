@@ -48,7 +48,7 @@ int align_reads(char* fastaFname, char* readsFname, char* alnsFname, aln_params_
 	remove(alnsFname); // remove an older .aln file (if it exists)
 
 	clock_t t = clock();
-	bwt_t* BWT = load_bwt_aln(bwtFname);
+	bwt_t* BWT = load_bwt(bwtFname, 0);
 	printf("Total BWT loading time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	
 	t = clock();
@@ -135,7 +135,7 @@ void print_sa_interval_list(sa_intv_list_t* intv_list) {
 	if (intv_list->size != 0) {
 		sa_intv_t* intv = intv_list->first_intv;
 		for(int i = 0; i < intv_list->size; i++) {
-			printf("SA Interval %d: L = %llu, U = %llu\n", i, intv->L, intv->U);
+			printf("SA Interval %d: L = %" PRIbwtint_t ", U = %" PRIbwtint_t "\n", i, intv->L, intv->U);
 			intv = intv->next_intv;
 		}
 	}
@@ -151,12 +151,17 @@ void store_sa_interval_list(sa_intv_list_t* intv_list, FILE* saFile) {
 	}
 }
 
+void load_sa_intervals_error() {
+	printf("load_sa_intervals: Could not read the precomputed intervals from file! \n");
+	exit(1);
+}
+
 void load_sa_interval_list(sa_intv_list_t* intv_list, FILE* saFile) {
-	fread(&intv_list->size, sizeof(int), 1, saFile);
+	if(fread(&intv_list->size, sizeof(int), 1, saFile) < 1) load_sa_intervals_error();
 	for(int j = 0; j < intv_list->size; j++) {
 		sa_intv_t* intv = (sa_intv_t*) calloc(1, sizeof(sa_intv_t));
-		fread(&intv->L, sizeof(bwtint_t), 1, saFile);
-		fread(&intv->U, sizeof(bwtint_t), 1, saFile);
+		if(fread(&intv->L, sizeof(bwtint_t), 1, saFile) < 1) load_sa_intervals_error();
+		if(fread(&intv->U, sizeof(bwtint_t), 1, saFile) < 1) load_sa_intervals_error();
 		if(j == 0) {
 			intv_list->first_intv = intv;
 			intv_list->last_intv = intv;
@@ -296,7 +301,7 @@ void print_alignments(alns_t* alns) {
 	printf("Number of alignments = %d \n", alns->num_entries);
 	for(int j = 0; j < alns->num_entries; j++) {
 		aln_t aln = alns->entries[j];
-		printf("Alignment %d: SA(%llu,%llu) score = %d, num_mm = %u, num_go = %u, num_ge = %u, num_snps = %u, aln_length = %d\n",
+		printf("Alignment %d: SA(%" PRIbwtint_t ",%" PRIbwtint_t ") score = %d, num_mm = %u, num_go = %u, num_ge = %u, num_snps = %u, aln_length = %d\n",
 				j, aln.L, aln.U, aln.score, aln.num_mm, aln.num_gapo, aln.num_gape, aln.num_snps, 0);//, aln.aln_length);
 		printf("\n");
 	}
@@ -328,7 +333,7 @@ void alns2alnf(alns_t* alns, FILE* alnFile) {
 	fprintf(alnFile, "%d\n", alns->num_entries);
 	for(int i = 0; i < alns->num_entries; i++) {
 		aln_t aln = alns->entries[i];
-		fprintf(alnFile, "%d\t%llu\t%llu\t%d\t%d\t%d\t%d\t", aln.score, aln.L, aln.U,
+		fprintf(alnFile, "%d\t%llu\t%llu\t%d\t%d\t%d\t%d\t", aln.score, (unsigned long long int) aln.L, (unsigned long long int) aln.U,
 				aln.num_mm, aln.num_gapo, aln.num_gape, /*aln.num_snps,*/ aln.aln_length);
 		for(int j = aln.aln_length-1; j >= 0; j--) {
 			fprintf(alnFile, "%c ", aln.aln_path[j]);
@@ -338,10 +343,16 @@ void alns2alnf(alns_t* alns, FILE* alnFile) {
 }
 
 // load alignments from file
+
+void load_alns_error(const char* alnFname) {
+	printf("alnsf2alns: Could not read alignment data from file: %s!\n", alnFname);
+	exit(1);
+}
+
 alns_t* alnsf2alns(int* n_alns, char *alnFname) {
 	FILE * alnFile = (FILE*) fopen(alnFname, "r");
 	if (alnFile == NULL) {
-		printf("alns2alnf: Cannot open ALN file: %s!\n", alnFname);
+		printf("alnsf2alns: Cannot open ALN file: %s!\n", alnFname);
 		perror(alnFname);
 		exit(1);
 	}
@@ -356,17 +367,19 @@ alns_t* alnsf2alns(int* n_alns, char *alnFname) {
 			memset(alns + alloc_alns/2, 0,  (alloc_alns/2)*sizeof(alns_t));
 		}
 		alns_t* read_alns = &alns[num_alns];
-		fscanf(alnFile, "%d\n", &(read_alns->num_entries));
+		if(fscanf(alnFile, "%d\n", &(read_alns->num_entries)) != 1) load_alns_error(alnFname);
 		read_alns->entries = (aln_t*) calloc(read_alns->num_entries, sizeof(aln_t));
 		for(int i = 0; i < read_alns->num_entries; i++) {
 			aln_t* aln = &(read_alns->entries[i]);
-			fscanf(alnFile, "%d\t%llu\t%llu\t%d\t%d\t%d\t%d\t", &(aln->score), &(aln->L), &(aln->U),
-					&(aln->num_mm), &(aln->num_gapo), &(aln->num_gape), /*&(aln->num_snps),*/ &(aln->aln_length));
+			if(fscanf(alnFile, "%d\t%" SCNbwtint_t "\t%" SCNbwtint_t "\t%d\t%d\t%d\t%d\t", &(aln->score), &(aln->L), &(aln->U),
+					&(aln->num_mm), &(aln->num_gapo), &(aln->num_gape), /*&(aln->num_snps),*/ &(aln->aln_length)) != 7) {
+				load_alns_error(alnFname);
+			}
 			aln->aln_path = (char*) malloc(aln->aln_length*sizeof(char));
 			for(int j = 0; j < aln->aln_length; j++) {
-				fscanf(alnFile, "%c ", &(aln->aln_path[j]));
+				if(fscanf(alnFile, "%c ", &(aln->aln_path[j])) != 1) load_alns_error(alnFname);
 			}
-			fscanf(alnFile,"\n");
+			if(fscanf(alnFile,"\n") < 0) load_alns_error(alnFname);
 		}
 		num_alns++;
 	}
@@ -392,7 +405,7 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 	char* annFname  = (char*) malloc(strlen(fastaFname) + 5);
 	sprintf(bwtFname, "%s.bwt", fastaFname);
 	sprintf(annFname, "%s.ann", fastaFname);
-	bwt_t* BWT = load_bwt(bwtFname);
+	bwt_t* BWT = load_bwt(bwtFname, 1);
 	fasta_annotations_t* annotations = annf2ann(annFname);
 
 	// load the alignment results of all the reads (TODO: batch)
@@ -563,7 +576,7 @@ void eval_alns(char *fastaFname, char *readsFname, char *alnsFname, int is_multi
 	// load the alignment results of all the reads
 	int num_alns;
 	alns_t* alns = alnsf2alns(&num_alns, alnsFname);
-	bwt_t* BWT = load_bwt(bwtFname);
+	bwt_t* BWT = load_bwt(bwtFname, 1);
 	reads_t* reads = fastq2reads(readsFname);
 	assert(num_alns == reads->count);
 

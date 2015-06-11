@@ -43,8 +43,7 @@ int index_bwt(char *fastaFname);
 bwt_t* construct_bwt(unsigned char *seq, const bwtint_t length);
 void free_bwt(bwt_t* BWT);
 void store_bwt(const bwt_t* BWT, const char* bwtFname);
-bwt_t* load_bwt(const char* bwtFname);
-bwt_t* load_bwt_aln(const char* bwtFname); // does not allocate/load the SA array
+bwt_t* load_bwt(const char* bwtFname, const int loadSA);
 void print_bwt(const bwt_t *BWT);
 bwtint_t is_bwt(unsigned char *T, bwtint_t n, bwtint_t* SA); // IS library method for constructing the transform
 

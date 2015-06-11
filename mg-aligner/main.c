@@ -107,13 +107,13 @@ int main(int argc, char *argv[]) {
 		}
 		int is_multiref = 1;
 		int max_diff = 6;
-		int n_occ = 3;
+		//int n_occ = 3;
 		int c;
 		while ((c = getopt(argc-1, argv+1, "n:S:o")) >= 0) {
 			switch (c) {
 				case 'S': is_multiref = 0; break;
 				case 'n': max_diff = atoi(optarg); break;
-				case 'o': n_occ = atoi(optarg); break;
+				//case 'o': n_occ = atoi(optarg); break;
 				case '?': printf("Unknown option \n"); break;
 				default: return 1;
 			}
