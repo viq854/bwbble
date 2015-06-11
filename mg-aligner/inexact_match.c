@@ -31,7 +31,7 @@ int align_reads_inexact(bwt_t *BWT, reads_t* reads, sa_intv_list_t* precalc_sa_i
 		exit(1);
 	}
 	// lower bound on the number of differences at each position in the read
-	diff_lower_bound_t* D = (diff_lower_bound_t*) calloc(READ_LENGTH+1, sizeof(diff_lower_bound_t));
+	diff_lower_bound_t* D = (diff_lower_bound_t*) calloc(reads->max_len+1, sizeof(diff_lower_bound_t));
 	// lower bound for the read seed positions
 	diff_lower_bound_t* D_seed = (diff_lower_bound_t*) calloc(params->seed_length+1, sizeof(diff_lower_bound_t));
 
@@ -116,7 +116,7 @@ int align_reads_inexact_parallel(bwt_t *BWT, reads_t* reads, sa_intv_list_t* pre
 			chunk_end = (tid + 1) * batch_size / n_threads;
 
 			// lower bound on the number of differences at each position in the read
-			D = (diff_lower_bound_t*) calloc(READ_LENGTH+1, sizeof(diff_lower_bound_t));
+			D = (diff_lower_bound_t*) calloc(reads->max_len+1, sizeof(diff_lower_bound_t));
 			// lower bound for the read seed positions
 			D_seed = (diff_lower_bound_t*) calloc(params->seed_length+1, sizeof(diff_lower_bound_t));
 			// partial alignments min-heap
@@ -130,7 +130,6 @@ int align_reads_inexact_parallel(bwt_t *BWT, reads_t* reads, sa_intv_list_t* pre
 					// discard reads that have N's in the last PRECALC_INTERVAL_LENGTH bases (<0 result from read_index)
 					int read_index = read2index(read->rc, read->len);
 					if(read_index < 0) {
-						//printf("Read %d index < 0\n", i);
 						continue;
 					}
 					precalc_sa_intervals = &(precalc_sa_intervals_table[read_index]);

@@ -5,8 +5,8 @@
 #include "common.h"
 
 #define SEQ_BATCH_ALLOC_LEN			262144
+#define READ_LENGTH_ALLOC  150
 #define ANN_ALLOC_LEN				256
-#define READ_LENGTH 				150
 #define MAX_SEQ_NAME_LEN 			256
 #define NUM_READS_ALLOC 			1000000
 
@@ -188,6 +188,7 @@ typedef struct {
 typedef struct {
 	// number of reads
 	unsigned int count;
+	unsigned int max_len;
 	// compressed read sequence
 	read_t* reads;
 } reads_t;

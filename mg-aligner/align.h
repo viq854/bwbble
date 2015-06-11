@@ -12,7 +12,6 @@
 #include "common.h"
 
 #define READ_BATCH_SIZE 0x40000
-#define READ_LENGTH  150
 
 #define STATE_M 0
 #define STATE_I 1

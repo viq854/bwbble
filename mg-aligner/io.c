@@ -286,7 +286,7 @@ reads_t* fastq2reads(char *readsFname) {
 
 		// line 2 (sequence letters)
 		int readLen = 0;
-		int allocatedReadLen = READ_LENGTH;
+		int allocatedReadLen = READ_LENGTH_ALLOC;
 		read->seq = (char*) malloc(allocatedReadLen*sizeof(char));
 		read->rc = (char*) malloc(allocatedReadLen*sizeof(char));
 		read->qual = (char*) malloc(allocatedReadLen*sizeof(char));
@@ -294,7 +294,7 @@ reads_t* fastq2reads(char *readsFname) {
 		c = (char) getc(readsFile);
 		while (c != '\n' && !feof(readsFile)) {
 			if (readLen >= allocatedReadLen) {
-				allocatedReadLen += READ_LENGTH;
+				allocatedReadLen += READ_LENGTH_ALLOC;
 				read->seq = (char*) realloc(read->seq, allocatedReadLen*sizeof(char));
 				read->rc = (char*) realloc(read->rc, allocatedReadLen*sizeof(char));
 				read->qual = (char*) realloc(read->qual, allocatedReadLen*sizeof(char));
@@ -338,6 +338,9 @@ reads_t* fastq2reads(char *readsFname) {
 			read->rc[read->len-1-i] = nt4_complement[(int)read->seq[i]];
 		}
 		
+		if(read->len > reads->max_len) {
+			reads->max_len = read->len;
+		}
 		reads->count++;
 	}
 	printf("Loaded %d reads from %s.\n", reads->count, readsFname);
