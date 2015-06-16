@@ -155,6 +155,135 @@ void fasta2pac(char *fastaFname, char* pacFname, char* annFname) {
 	free(seq);
 }
 
+// reads the input sequence data from the FASTA file, concatenates the subsequences,
+// appends the reverse complement, encodes the resulting sequence and writes it to a .ref file;
+// sequence annotations are stored into an .ann file
+void fasta2ref(const char *fastaFname, const char* refFname, const char* annFname, unsigned char** seq, bwtint_t *totalSeqLen) {
+	// input sequence
+	FILE* fastaFile = (FILE*) fopen(fastaFname, "r");
+	if (fastaFile == NULL) {
+		printf("fasta2ref: Cannot open FASTA file: %s!\n", fastaFname);
+		exit(1);
+	}
+
+	// annotations
+	FILE * annFile = (FILE*) fopen(annFname, "wb");
+	if (annFile == NULL) {
+		printf("fasta2ref: Cannot open .ann file: %s!\n", annFname);
+		exit(1);
+	}
+	fasta_annotations_t* annotations = (fasta_annotations_t*) calloc(1, sizeof(fasta_annotations_t));
+	bwtint_t allocatedAnnNum = ANN_ALLOC_LEN;
+	annotations->seq_anns = (seq_annotation_t*) malloc(allocatedAnnNum * sizeof(seq_annotation_t));
+
+	// output combined ref sequence
+	FILE* refFile;
+	int save_ref = 0;
+	if(refFname != NULL) {
+		save_ref = 1;
+		refFile = (FILE*) fopen(refFname, "wb");
+		if (refFile == NULL) {
+			printf("fasta2ref: Cannot open .ref file: %s!\n", refFname);
+			exit(1);
+		}
+	}
+
+	bwtint_t allocatedSeqLen = 50*1024*1024;
+	*seq = (unsigned char*) malloc(allocatedSeqLen * sizeof(unsigned char));
+	bwtint_t seqLen = 0;
+
+	char c = (char) getc(fastaFile);
+	if(c != '>') fasta_error(fastaFname);
+
+	while(!feof(fastaFile)) {
+		if(allocatedAnnNum == annotations->num_seq) {
+			allocatedAnnNum <<= 1;
+			annotations->seq_anns = (seq_annotation_t*)realloc(annotations->seq_anns, allocatedAnnNum * sizeof(seq_annotation_t));
+		}
+		seq_annotation_t* seqAnnotation = &(annotations->seq_anns[annotations->num_seq]);
+
+		// sequence description line (> ...)
+		c = (char) getc(fastaFile);
+		bwtint_t seqNameLen = 0;
+		while(c != '\n' && seqNameLen < MAX_SEQ_NAME_LEN && !feof(fastaFile)){
+			seqAnnotation->name[seqNameLen] = c;
+			seqNameLen++;
+			c = (char) getc(fastaFile);
+		}
+		seqAnnotation->name[seqNameLen]='\0';
+		while(c != '\n' && !feof(fastaFile)){
+			c = (char) getc(fastaFile);
+		}
+		if(feof(fastaFile)) fasta_error(fastaFname);
+
+		// sequence data
+		bwtint_t subseqLen = 0;
+		while(c != '>' && !feof(fastaFile)){
+			if (c != '\n'){
+				if (c >= 'a' && c <= 'z'){
+					c += 'A'-'a';
+				}
+				// reallocate twice as much memory
+				if (seqLen >= allocatedSeqLen) {
+					allocatedSeqLen <<= 1;
+					*seq = (char*)realloc(*seq, sizeof(char)*allocatedSeqLen);
+					if(*seq == NULL) {
+						printf("fasta2ref: Could not allocate memory for the input sequence, size alloc'd = %" PRIbwtint_t "\n", allocatedSeqLen);
+						exit(1);
+					}
+				}
+
+				(*seq)[seqLen] = nt16_table[(unsigned int) c];
+				seqLen++;
+				subseqLen++;
+				if(save_ref) {
+					putc((*seq)[seqLen], refFile);
+				}
+			}
+			c = (char) getc(fastaFile);
+		}
+		// add $ as a separator between chromosomes and bubbles
+		// s.t. no match is found spanning multiple sequences
+		(*seq)[seqLen] = nt16_table[(unsigned int)'$'];
+		seqLen++;
+		subseqLen++;
+		if(save_ref) {
+			putc((*seq)[seqLen], refFile);
+		}
+		printf("Done reading a subsequence of size %" PRIbwtint_t " from FASTA\n", seqLen);
+
+		// record the sequence range in the concatenated genome
+		seqAnnotation->start_index = seqLen - subseqLen;
+		seqAnnotation->end_index = seqLen - 1;
+		annotations->num_seq++;
+	}
+	printf("Done reading FASTA file. Total sequence length read = %" PRIbwtint_t "\n", seqLen);
+
+	// store annotations info
+	fprintf(annFile, "%" PRIbwtint_t "\t%d\n", seqLen, annotations->num_seq);
+	for(int i = 0; i < annotations->num_seq; i++) {
+		seq_annotation_t seqAnnotation = annotations->seq_anns[i];
+		fprintf(annFile, "%s\t%" PRIbwtint_t "\t%" PRIbwtint_t "\n", seqAnnotation.name, seqAnnotation.start_index, seqAnnotation.end_index);
+	}
+
+	// add the reverse complement
+	*seq = (char*)realloc(*seq, sizeof(char)*2*seqLen);
+	if(*seq == NULL) {
+		printf("fasta2ref: Could not allocate memory for the reference sequence (including complement), of length = %" PRIbwtint_t "\n", 2*seqLen);
+		exit(1);
+	}
+	for(bwtint_t i = 0; i < seqLen; i++) {
+		(*seq)[2*seqLen-i-1] = iupacCompl[(int) (*seq)[i]];
+	}
+	(*totalSeqLen) = 2*seqLen;
+
+	fclose(fastaFile);
+	fclose(annFile);
+	if(save_ref) fclose(refFile);
+	free(annotations->seq_anns);
+	free(annotations);
+}
+
 // load annotations from file
 fasta_annotations_t* annf2ann(char *annFname) {
 	FILE * annFile = (FILE*) fopen(annFname, "r");

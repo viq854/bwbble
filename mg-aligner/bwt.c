@@ -41,6 +41,7 @@ int index_bwt(char* fastaFname) {
 	fasta2pac(fastaFname, pacFname, annFname);
 	// resulting sequence will contain the forward + reverse complement reference
 	pac2seq(pacFname, &seq, &seqLen);
+	//fasta2ref(fastaFname, NULL, annFname, seq, seqLen);
 
 	// 2. compute the forward and reverse complement BWT
 	clock_t t = clock();
