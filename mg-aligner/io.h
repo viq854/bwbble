@@ -207,16 +207,16 @@ typedef struct {
 } fasta_annotations_t;
 
 void fasta2ref(const char *fastaFname, const char* refFname, const char* annFname, unsigned char** seq, bwtint_t *totalSeqLen);
-void fasta2pac(char *fastaFname, char* pacFname, char* annFname);
-void pac2seq(char *pacFname, unsigned char** seq, bwtint_t *seqLength);
-reads_t* fastq2reads(char *readsFname);
+void fasta2pac(const char *fastaFname, const char* pacFname, const char* annFname);
+void pac2seq(const char *pacFname, unsigned char** seq, bwtint_t *seqLength);
+reads_t* fastq2reads(const char *readsFname);
 void seq2rev_compl(unsigned char* seq, bwtint_t seqLen, unsigned char** rcSeq);
 void parse_read_mapping(read_t* read);
 
 void print_read(read_t* read);
 void free_reads(reads_t* reads);
 
-fasta_annotations_t* annf2ann(char *annFname);
+fasta_annotations_t* annf2ann(const char *annFname);
 void free_ann(fasta_annotations_t* annotations);
 
 // Compression

@@ -15,12 +15,12 @@
 #include <math.h>
 #include "io.h"
 
-void fasta_error(char* fastaFname) {
+void fasta_error(const char* fastaFname) {
 	printf("Error: File %s does not comply with the FASTA file format \n", fastaFname);
 	exit(1);
 }
 
-void fastq_error(char* fastqFname) {
+void fastq_error(const char* fastqFname) {
 	printf("Error: File %s does not comply with the FASTQ file format \n", fastqFname);
 	exit(1);
 }
@@ -29,7 +29,7 @@ void fastq_error(char* fastqFname) {
 
 // reads the sequence data from the FASTA file, encodes and packs it into a .pac file,
 // sequence annotations are stored into an .ann file
-void fasta2pac(char *fastaFname, char* pacFname, char* annFname) {
+void fasta2pac(const char *fastaFname, const char* pacFname, const char* annFname) {
 	FILE * fastaFile = (FILE*) fopen(fastaFname, "r");
 	if (fastaFile == NULL) {
 		printf("fasta2pac: Cannot open FASTA file: %s!\n", fastaFname);
@@ -181,7 +181,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 	int save_ref = 0;
 	if(refFname != NULL) {
 		save_ref = 1;
-		refFile = (FILE*) fopen(refFname, "wb");
+		refFile = (FILE*) fopen(refFname, "wt");
 		if (refFile == NULL) {
 			printf("fasta2ref: Cannot open .ref file: %s!\n", refFname);
 			exit(1);
@@ -226,7 +226,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 				// reallocate twice as much memory
 				if (seqLen >= allocatedSeqLen) {
 					allocatedSeqLen <<= 1;
-					*seq = (char*)realloc(*seq, sizeof(char)*allocatedSeqLen);
+					*seq = (unsigned char*)realloc(*seq, sizeof(unsigned char)*allocatedSeqLen);
 					if(*seq == NULL) {
 						printf("fasta2ref: Could not allocate memory for the input sequence, size alloc'd = %" PRIbwtint_t "\n", allocatedSeqLen);
 						exit(1);
@@ -237,7 +237,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 				seqLen++;
 				subseqLen++;
 				if(save_ref) {
-					putc((*seq)[seqLen], refFile);
+					putc((int) (*seq)[seqLen-1], refFile);
 				}
 			}
 			c = (char) getc(fastaFile);
@@ -248,9 +248,9 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 		seqLen++;
 		subseqLen++;
 		if(save_ref) {
-			putc((*seq)[seqLen], refFile);
+			putc((*seq)[seqLen-1], refFile);
 		}
-		printf("Done reading a subsequence of size %" PRIbwtint_t " from FASTA\n", seqLen);
+		printf("Done reading a subsequence of size %" PRIbwtint_t " from FASTA\n", subseqLen);
 
 		// record the sequence range in the concatenated genome
 		seqAnnotation->start_index = seqLen - subseqLen;
@@ -267,7 +267,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 	}
 
 	// add the reverse complement
-	*seq = (char*)realloc(*seq, sizeof(char)*2*seqLen);
+	*seq = (unsigned char*)realloc(*seq, sizeof(unsigned char)*2*seqLen);
 	if(*seq == NULL) {
 		printf("fasta2ref: Could not allocate memory for the reference sequence (including complement), of length = %" PRIbwtint_t "\n", 2*seqLen);
 		exit(1);
@@ -277,6 +277,12 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 	}
 	(*totalSeqLen) = 2*seqLen;
 
+	if(save_ref) {
+		for(bwtint_t i = 0; i < seqLen; i++) {
+			putc((*seq)[seqLen+i], refFile);
+		}
+	}
+
 	fclose(fastaFile);
 	fclose(annFile);
 	if(save_ref) fclose(refFile);
@@ -285,7 +291,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 }
 
 // load annotations from file
-fasta_annotations_t* annf2ann(char *annFname) {
+fasta_annotations_t* annf2ann(const char *annFname) {
 	FILE * annFile = (FILE*) fopen(annFname, "r");
 	if (annFile == NULL) {
 		printf("annf2ann: Cannot open ANN file: %s!\n", annFname);
@@ -319,7 +325,7 @@ void free_ann(fasta_annotations_t* annotations) {
 
 // the packed reference sequence is read from the PAC file, uncompressed,
 // concatenated with its reverse complement, and stored into seq
-void pac2seq(char *pacFname, unsigned char** seq, bwtint_t *totalSeqLen) {
+void pac2seq(const char *pacFname, unsigned char** seq, bwtint_t *totalSeqLen) {
 	FILE* pacFile = (FILE*) fopen(pacFname, "rb");
 	if (pacFile == NULL) {
 		printf("pac2seq: Cannot open PAC file %s!\n", pacFname);
@@ -371,7 +377,7 @@ void seq2rev_compl(unsigned char* seq, bwtint_t seqLen, unsigned char** rcSeq) {
 /* Reads I/O */
 
 // loads the read sequences from the FASTQ file
-reads_t* fastq2reads(char *readsFname) {
+reads_t* fastq2reads(const char *readsFname) {
 	FILE *readsFile = (FILE*) fopen(readsFname, "r");
 	if (readsFile == NULL) {
 		printf("load_reads_fastq: Cannot open reads file: %s !\n", readsFname);

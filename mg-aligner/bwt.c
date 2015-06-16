@@ -28,20 +28,18 @@ inline void get_occ_count_actg_alphabet(const bwt_t* BWT, const bwtint_t start_i
 // Compute the BWT index of a given reference file
 int index_bwt(char* fastaFname) {
 	printf("**** BWT Index **** \n");
-	char* pacFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* annFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* bwtFname  = (char*) malloc(strlen(fastaFname) + 5);
-	sprintf(pacFname, "%s.pac", fastaFname);
+	char* refFname  = (char*) malloc(strlen(fastaFname) + 5);
 	sprintf(annFname, "%s.ann", fastaFname);
 	sprintf(bwtFname, "%s.bwt", fastaFname);
+ 	sprintf(refFname, "%s.ref", fastaFname);
 
 	// 1. read and pack the input FASTA file
 	unsigned char *seq;
 	bwtint_t seqLen;
-	fasta2pac(fastaFname, pacFname, annFname);
 	// resulting sequence will contain the forward + reverse complement reference
-	pac2seq(pacFname, &seq, &seqLen);
-	//fasta2ref(fastaFname, NULL, annFname, seq, seqLen);
+	fasta2ref(fastaFname, refFname, annFname, &seq, &seqLen);
 
 	// 2. compute the forward and reverse complement BWT
 	clock_t t = clock();
@@ -51,9 +49,9 @@ int index_bwt(char* fastaFname) {
 	// 3. save the BWT to file
 	store_bwt(BWT, bwtFname);
 
-	free(pacFname);
 	free(annFname);
 	free(bwtFname);
+	free(refFname);
 	free_bwt(BWT);
 	return 0;
 }
