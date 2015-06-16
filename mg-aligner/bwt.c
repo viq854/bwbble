@@ -135,8 +135,8 @@ bwtint_t esa2bwt(const unsigned char* seq, unsigned char* bwt_seq, const bwtint_
 		exit(1);
 	}
 	bwtint_t sa0_index;
-	SA[0] = n;
-	bwt_seq[0] = SA[0];
+	bwtSA[0] = n;
+	bwt_seq[0] = bwtSA[0];
 	// stream from file
 	for (bwtint_t i = 1; i <= n; i++) {
 		bwtint_t sa_i;

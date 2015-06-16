@@ -207,6 +207,7 @@ typedef struct {
 } fasta_annotations_t;
 
 void fasta2ref(const char *fastaFname, const char* refFname, const char* annFname, unsigned char** seq, bwtint_t *totalSeqLen);
+void ref2seq(const char* refFname, unsigned char** seq, bwtint_t* seqLen);
 void fasta2pac(const char *fastaFname, const char* pacFname, const char* annFname);
 void pac2seq(const char *pacFname, unsigned char** seq, bwtint_t *seqLength);
 reads_t* fastq2reads(const char *readsFname);

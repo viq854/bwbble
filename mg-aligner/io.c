@@ -155,6 +155,34 @@ void fasta2pac(const char *fastaFname, const char* pacFname, const char* annFnam
 	free(seq);
 }
 
+void ref2seq(const char* refFname, unsigned char** seq, bwtint_t* totalSeqLen) {
+	// input sequence
+	FILE* refFile = (FILE*) fopen(refFname, "r");
+	if (refFile == NULL) {
+		printf("ref2seq: Cannot open .ref file: %s!\n", refFname);
+		exit(1);
+	}
+
+	bwtint_t allocatedSeqLen = 50*1024*1024;
+	*seq = (unsigned char*) malloc(allocatedSeqLen * sizeof(unsigned char));
+	bwtint_t seqLen = 0;
+	while(!feof(refFile)) {
+		unsigned char c = (unsigned char) getc(refFile);
+		if (seqLen >= allocatedSeqLen) {
+			allocatedSeqLen <<= 1;
+			*seq = (unsigned char*)realloc(*seq, sizeof(unsigned char)*allocatedSeqLen);
+			if(*seq == NULL) {
+				printf("ref2seq: Could not allocate memory for the input sequence, size alloc'd = %" PRIbwtint_t "\n", allocatedSeqLen);
+				exit(1);
+			}
+			(*seq)[seqLen] = c;
+			seqLen++;
+		}
+	}
+	printf("Done reading FASTA file. Total sequence length read = %" PRIbwtint_t "\n", seqLen);
+	*totalSeqLen = seqLen;
+}
+
 // reads the input sequence data from the FASTA file, concatenates the subsequences,
 // appends the reverse complement, encodes the resulting sequence and writes it to a .ref file;
 // sequence annotations are stored into an .ann file
