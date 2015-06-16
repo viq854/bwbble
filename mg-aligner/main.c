@@ -39,22 +39,30 @@ static int usage() {
 	printf("Usage:   bwbble command [options] \n");
 	printf("Command: index    index sequences in the FASTA format\n");
 	printf("         align    exact or inexact read alignment\n");
+	printf("         fasta2ref    constructs a single linear reference from the input file \n");
 	printf("         aln2sam  convert alignment results to SAM file format for single-end mapping\n");
 	printf("\n");
 	return 1;
 }
 
+static int index_usage() {
+	printf("Usage: bwbble index [options] <seq_fasta> \n");
+	printf("Options: e    file with the SA precomputed by the external memory eSAIS algorithm.\n");
+	printf("\n");
+	return 1;
+}
+
 static int align_usage() {
-	printf("Usage: bwbble align [options] seq_fasta reads_fastq output_aln \n");
-	printf("Options: M    mismatch penalty\n");
-	printf("         O    gap open penalty\n");
-	printf("         E    gap extend penalty\n");
-	printf("         n    maximum number of differences in the alignment (gaps and mismatches)\n");
-	printf("         l    length of the seed (seed := first seed_length chars of the read)\n");
-	printf("         k    maximum number of differences in the seed\n");
-	printf("         o    maximum number of gap opens\n");
-	printf("         e    maximum number of gap extends\n");
-	printf("         t    run multi-threaded with t threads\n");
+	printf("Usage: bwbble align [options] <seq_fasta> <reads_fastq> <output_aln> \n");
+	printf("Options: M    mismatch penalty (default: 3)\n");
+	printf("         O    gap open penalty (default: 11) \n");
+	printf("         E    gap extend penalty (default: 4) \n");
+	printf("         n    maximum number of differences in the alignment (gaps and mismatches) (default: 0)\n");
+	printf("         l    length of the seed (seed := first seed_length chars of the read) (default: 32)\n");
+	printf("         k    maximum number of differences in the seed (default: 2)\n");
+	printf("         o    maximum number of gap opens (default: 1)\n");
+	printf("         e    maximum number of gap extends (default: 6) \n");
+	printf("         t    run multi-threaded with t threads (default: 1)\n");
 	printf("         S    align with a single-genome reference\n");
 	printf("         P    use pre-calculated partial alignment results\n");
 	printf("\n");
@@ -65,10 +73,20 @@ int main(int argc, char *argv[]) {
 	if (argc < 2) return usage();
 	if (strcmp(argv[1], "index") == 0) {
 		if(argc < 3) {
-			printf("Usage: bwbble index seq_fasta \n");
+			index_usage();
 			exit(1);
 		}
-		index_bwt(argv[2]);
+
+		const char* use_esa_file;
+		int c;
+		while ((c = getopt(argc-1, argv+1, "e:")) >= 0) {
+			switch (c) {
+				case 'e':use_esa_file = optarg; break;
+				case '?': index_usage(); return 1;
+				default: return 1;
+			}
+		}
+		index_bwt(argv[2], use_esa_file);
 	}
 	else if (strcmp(argv[1], "align") == 0) {
 		if(argc < 5) {

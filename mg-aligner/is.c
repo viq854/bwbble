@@ -213,6 +213,10 @@ int is_sa(const ubyte_t *T, seqint_t *SA, seqint_t n)
  */
 bwtint_t is_bwt(unsigned char *T, bwtint_t n, bwtint_t* bwtSA) {
 	seqint_t *SA = (seqint_t*) calloc(n+1, sizeof(seqint_t));
+	if(SA == 0) {
+		printf("is_bwt: Could not allocate memory for the BWT index construction (in SAIS), alloc'ing %" PRIbwtint_t " Mb\n", (n+1)*sizeof(seqint_t)/1024/1024);
+		exit(1);
+	}
 	is_sa(T, SA, n);
 
 	bwtint_t sa0_index;

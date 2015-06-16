@@ -26,7 +26,7 @@ inline void get_occ_count_alphabet(const bwt_t* BWT, const bwtint_t start_index,
 inline void get_occ_count_actg_alphabet(const bwt_t* BWT, const bwtint_t start_index, const bwtint_t end_index, bwtint_t* occ);
 
 // Compute the BWT index of a given reference file
-int index_bwt(char* fastaFname) {
+int index_bwt(const char* fastaFname, const char* extSAFname) {
 	printf("**** BWT Index **** \n");
 	char* annFname  = (char*) malloc(strlen(fastaFname) + 5);
 	char* bwtFname  = (char*) malloc(strlen(fastaFname) + 5);
@@ -39,7 +39,12 @@ int index_bwt(char* fastaFname) {
 	unsigned char *seq;
 	bwtint_t seqLen;
 	// resulting sequence will contain the forward + reverse complement reference
-	fasta2ref(fastaFname, refFname, annFname, &seq, &seqLen);
+	if(extSAFname == NULL) {
+		fasta2ref(fastaFname, refFname, annFname, &seq, &seqLen);
+	} else {
+		// load directly from precomputed ref file
+		ref2seq(refFname, &seq, &seqLen);
+	}
 
 	// 2. compute the forward and reverse complement BWT
 	clock_t t = clock();
@@ -57,7 +62,7 @@ int index_bwt(char* fastaFname) {
 }
 
 // Store the BWT to a file
-void store_bwt(const bwt_t* BWT, const char* bwtFname) {
+void store_bwt(const const bwt_t* BWT, const char* bwtFname) {
 	FILE* bwtFile = (FILE*) fopen(bwtFname, "wb");
 	if (bwtFile == NULL) {
 		printf("store_bwt: Cannot open the BWT file %s!\n", bwtFname);
@@ -72,7 +77,6 @@ void store_bwt(const bwt_t* BWT, const char* bwtFname) {
 	fwrite(BWT->bwt, sizeof(uint32_t), BWT->num_words, bwtFile);
 	fwrite(BWT->O, sizeof(bwtint_t), BWT->num_occ*ALPHABET_SIZE, bwtFile);
 	fwrite(BWT->SA, sizeof(bwtint_t), BWT->num_sa, bwtFile);
-
 	fclose(bwtFile);
 }
 
@@ -99,7 +103,7 @@ bwt_t* load_bwt(const char* bwtFname, int loadSA) {
 	BWT->bwt = (uint32_t *) calloc(BWT->num_words, sizeof(uint32_t));
 	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
 	if((BWT->bwt == 0) || (BWT->O == 0)) {
-		printf("Could not allocate memory for the BWT index. \n");
+		printf("load_bwt: Could not allocate memory for the BWT index. \n");
 		exit(1);
 	}
 	if(fread(BWT->bwt, sizeof(uint32_t), BWT->num_words, bwtFile) < BWT->num_words) load_bwt_error(bwtFname);
@@ -108,9 +112,9 @@ bwt_t* load_bwt(const char* bwtFname, int loadSA) {
 	if(loadSA != 0) {
 		BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
 		if(BWT->SA == 0) {
-                	printf("Could not allocate memory for the BWT index. \n");
-                	exit(1);
-        	}
+			printf("load_bwt: Could not allocate memory for the BWT index. \n");
+			exit(1);
+		}
 		if(fread(BWT->SA, sizeof(bwtint_t), BWT->num_sa, bwtFile) < BWT->num_sa) load_bwt_error(bwtFname);
 	}
 	generate_occ_table(BWT);
@@ -119,10 +123,66 @@ bwt_t* load_bwt(const char* bwtFname, int loadSA) {
 	return BWT;
 }
 
+void load_ext_sa_error(const char* extSAFname) {
+	printf("esa2bwt: Could not read ext SA from file: %s!\n", extSAFname);
+	exit(1);
+}
+
+bwtint_t esa2bwt(const unsigned char* seq, unsigned char* bwt_seq, const bwtint_t n, bwtint_t* bwtSA, const char* extSAFname) {
+	FILE* saFile = (FILE*) fopen(extSAFname, "rb");
+	if (saFile == NULL) {
+		printf("esa2bwt: Cannot open the ext SA file: %s!\n", extSAFname);
+		exit(1);
+	}
+	bwtint_t sa0_index;
+	SA[0] = n;
+	bwt_seq[0] = SA[0];
+	// stream from file
+	for (bwtint_t i = 1; i <= n; i++) {
+		bwtint_t sa_i;
+		if(fread(&sa_i, 5, 1, saFile) < 1) load_ext_sa_error(extSAFname); // 40-bit
+		if(i % SA_INTERVAL == 0) {
+			bwtSA[i/SA_INTERVAL] = sa_i;
+		}
+		// set SA to BWT
+		if (sa_i == 0) {
+			sa0_index = i;
+			bwt_seq[i] = nt16_table['$'];
+		}
+		else {
+			bwt_seq[i] = seq[sa_i - 1];
+		}
+	}
+	return sa0_index;
+}
+
 // Construct the BWT index
-bwt_t* construct_bwt(unsigned char *ref, const bwtint_t length) {
+bwt_t* construct_bwt(unsigned char *ref, const bwtint_t length, const char* extSAFname) {
 	bwt_t *BWT = (bwt_t*) calloc(1, sizeof(bwt_t));
 	BWT->length = length + 1;
+
+	// alloc suffix array
+	BWT->num_sa = ceil(((double) BWT->length)/SA_INTERVAL);
+	BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
+	if(BWT->SA == 0) {
+		printf("construct_bwt: Could not allocate memory for the compressed SA, alloc'ing %" PRIbwtint_t " Mb\n", BWT->num_sa*sizeof(bwtint_t)/1024/1024);
+		exit(1);
+	}
+	// compute the BWT (and SA) of the sequence (output in ref)
+	clock_t t = clock();
+	if(extSAFname == NULL) {
+		BWT->sa0_index = is_bwt(ref, length, BWT->SA);
+		printf("SAIS time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+	} else {
+		unsigned char* bwt_seq = (unsigned char*) malloc((length+1) * sizeof(unsigned char));
+		BWT->sa0_index = esa2bwt(ref, bwt_seq, length, BWT->SA, extSAFname);
+		ref = bwt_seq;
+		free(ref);
+	}
+	if(BWT->sa0_index < 0) {
+		printf("SA construction failed\n");
+		exit(1);
+	}
 
 	// compressed BWT code
 	BWT->num_words = ceil(((double) BWT->length)/CHARS_PER_WORD);
@@ -132,20 +192,8 @@ bwt_t* construct_bwt(unsigned char *ref, const bwtint_t length) {
 	BWT->num_occ = ceil(((double) BWT->length)/OCC_INTERVAL);
 	BWT->O = (bwtint_t*) calloc(BWT->num_occ*ALPHABET_SIZE, sizeof(bwtint_t));
 
-	// suffix array
-	BWT->num_sa = ceil(((double) BWT->length)/SA_INTERVAL);
-	BWT->SA = (bwtint_t*) calloc(BWT->num_sa, sizeof(bwtint_t));
-
 	if((BWT->bwt == 0) || (BWT->O == 0) || (BWT->SA == 0)) {
-		printf("Could not allocate memory for the BWT index. \n");
-		exit(1);
-	}
-	// compute the BWT (and SA) of the sequence (output in ref)
-	clock_t t = clock();
-	BWT->sa0_index = is_bwt(ref, length, BWT->SA);
-	printf("SAIS time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-	if(BWT->sa0_index < 0) {
-		printf("sais SA construction failed\n");
+		printf("construct_bwt: Could not allocate memory for the BWT index, alloc'ing %" PRIbwtint_t " Mb\n", (BWT->num_words*sizeof(uint32_t) + BWT->num_occ*ALPHABET_SIZE*sizeof(bwtint_t))/1024/1024);
 		exit(1);
 	}
 
