@@ -48,7 +48,7 @@ int index_bwt(const char* fastaFname, const char* extSAFname) {
 
 	// 2. compute the forward and reverse complement BWT
 	clock_t t = clock();
-	bwt_t* BWT = construct_bwt(seq, seqLen);
+	bwt_t* BWT = construct_bwt(seq, seqLen, extSAFname);
 	printf("Total BWT construction time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 
 	// 3. save the BWT to file

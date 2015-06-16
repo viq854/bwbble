@@ -39,7 +39,7 @@ typedef struct {
 	bwtint_t sa0_index;
 } bwt_t;
 
-int index_bwt(char *fastaFname);
+int index_bwt(const char *fastaFname, const char* extSAFname);
 bwt_t* construct_bwt(unsigned char *seq, const bwtint_t length, const char* extSAFname);
 void free_bwt(bwt_t* BWT);
 void store_bwt(const bwt_t* BWT, const char* bwtFname);
