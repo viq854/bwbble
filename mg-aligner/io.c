@@ -166,8 +166,8 @@ void ref2seq(const char* refFname, unsigned char** seq, bwtint_t* totalSeqLen) {
 	bwtint_t allocatedSeqLen = 50*1024*1024;
 	*seq = (unsigned char*) malloc(allocatedSeqLen * sizeof(unsigned char));
 	bwtint_t seqLen = 0;
+	unsigned char c = (unsigned char) getc(refFile);
 	while(!feof(refFile)) {
-		unsigned char c = (unsigned char) getc(refFile);
 		if (seqLen >= allocatedSeqLen) {
 			allocatedSeqLen <<= 1;
 			*seq = (unsigned char*)realloc(*seq, sizeof(unsigned char)*allocatedSeqLen);
@@ -175,9 +175,10 @@ void ref2seq(const char* refFname, unsigned char** seq, bwtint_t* totalSeqLen) {
 				printf("ref2seq: Could not allocate memory for the input sequence, size alloc'd = %" PRIbwtint_t "\n", allocatedSeqLen);
 				exit(1);
 			}
-			(*seq)[seqLen] = c;
-			seqLen++;
 		}
+		(*seq)[seqLen] = c;
+		seqLen++;
+		c = (unsigned char) getc(refFile);
 	}
 	printf("Done reading FASTA file. Total sequence length read = %" PRIbwtint_t "\n", seqLen);
 	*totalSeqLen = seqLen;
@@ -309,6 +310,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 		for(bwtint_t i = 0; i < seqLen; i++) {
 			putc((*seq)[seqLen+i], refFile);
 		}
+		printf("Wrote %" PRIbwtint_t " chars to ref file\n", 2*seqLen);
 	}
 
 	fclose(fastaFile);

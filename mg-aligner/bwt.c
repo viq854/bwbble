@@ -1,4 +1,4 @@
-//-------------------------------------------------------
+//------------------------------------------------------
 // BWT Indexing
 // Victoria Popic (viq@stanford.edu), 2012
 //-------------------------------------------------------
@@ -50,6 +50,7 @@ int index_bwt(const char* fastaFname, const char* extSAFname) {
 	clock_t t = clock();
 	bwt_t* BWT = construct_bwt(seq, seqLen, extSAFname);
 	printf("Total BWT construction time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+	//print_bwt(BWT);
 
 	// 3. save the BWT to file
 	store_bwt(BWT, bwtFname);
@@ -136,7 +137,7 @@ bwtint_t esa2bwt(const unsigned char* seq, unsigned char* bwt_seq, const bwtint_
 	}
 	bwtint_t sa0_index;
 	bwtSA[0] = n;
-	bwt_seq[0] = bwtSA[0];
+	bwt_seq[0] = seq[bwtSA[0]-1];
 	// stream from file
 	for (bwtint_t i = 1; i <= n; i++) {
 		bwtint_t sa_i;
@@ -174,10 +175,11 @@ bwt_t* construct_bwt(unsigned char *ref, const bwtint_t length, const char* extS
 		BWT->sa0_index = is_bwt(ref, length, BWT->SA);
 		printf("SAIS time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	} else {
+		printf("Computing BWT from precomputed eSAIS SA \n");
 		unsigned char* bwt_seq = (unsigned char*) malloc((length+1) * sizeof(unsigned char));
 		BWT->sa0_index = esa2bwt(ref, bwt_seq, length, BWT->SA, extSAFname);
-		ref = bwt_seq;
 		free(ref);
+		ref = bwt_seq;
 	}
 	if(BWT->sa0_index < 0) {
 		printf("SA construction failed\n");

@@ -77,16 +77,16 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 
-		const char* use_esa_file;
+		char* use_esa_file = NULL;
 		int c;
 		while ((c = getopt(argc-1, argv+1, "e:")) >= 0) {
 			switch (c) {
-				case 'e':use_esa_file = optarg; break;
+				case 'e': use_esa_file = optarg; break;
 				case '?': index_usage(); return 1;
 				default: return 1;
 			}
 		}
-		index_bwt(argv[2], use_esa_file);
+		index_bwt(argv[optind+1], use_esa_file);
 	}
 	else if (strcmp(argv[1], "align") == 0) {
 		if(argc < 5) {
@@ -118,9 +118,24 @@ int main(int argc, char *argv[]) {
 		
 		align_reads(argv[optind+1], argv[optind+2], argv[optind+3], params);
 		free(params);
+	} else if (strcmp(argv[1], "fasta2ref") == 0) {
+                if(argc < 3) {
+                        printf("Usage: bwbble fasta2ref <seq_fasta> \n");
+                        exit(1);
+                }
+		char* refFname  = (char*) malloc(strlen(argv[optind+1]) + 5);
+		char* annFname  = (char*) malloc(strlen(argv[optind+1]) + 5);
+        	sprintf(refFname, "%s.ref", argv[optind+1]);
+        	sprintf(annFname, "%s.ann", argv[optind+1]);
+		unsigned char *seq;
+        	bwtint_t seqLen;
+                fasta2ref(argv[optind+1], refFname, annFname, &seq, &seqLen);
+        	free(annFname);
+        	free(refFname);
+		free(seq);
 	} else if (strcmp(argv[1], "aln2sam") == 0) {
 		if(argc < 6) {
-			printf("Usage: bwbble aln2sam [-S, -n] seq_fasta reads_fastq alns_aln out_sam \n");
+			printf("Usage: bwbble aln2sam [-S, -n] <seq_fasta> <reads_fastq> <alns_aln> <out_sam> \n");
 			exit(1);
 		}
 		int is_multiref = 1;
