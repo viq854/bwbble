@@ -48,4 +48,4 @@ Lin Huang\*, Victoria Popic\*, and Serafim Batzoglou. "Short read alignment with
 
 ###Support
 
-Please contact Victoria Popic (viq@stanford.edu) for support related to the alignment functionality and Lin Huang for help with the multi-genome construction.
+Please contact Victoria Popic (viq@stanford.edu) for support related to the alignment functionality and Lin Huang (linhuang@cs.stanford.edu) for help with the multi-genome construction.
