@@ -15,7 +15,7 @@ Usage: ```bwbble command [options]```
 2.```align``` align reads  
 ```bwbble align [options] <seq_fasta> <reads_fastq> [output_aln]```  
  
-####Options:  
+#####Options:  
 ```-M <arg>``` mismatch penalty (default: 3)  
 ```-O <arg> ``` gap open penalty (default: 11)  
 ```-E <arg> ``` gap extend penalty (default: 4)  
