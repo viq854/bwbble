@@ -342,10 +342,49 @@ void alns2alnf(alns_t* alns, FILE* alnFile) {
 	}
 }
 
+void alns2alnf_bin(alns_t* alns, FILE* alnFile) {
+	fwrite(&alns->num_entries, sizeof(int), 1, alnFile);
+	for(int i = 0; i < alns->num_entries; i++) {
+		aln_t aln = alns->entries[i];
+		fwrite(&aln.score, sizeof(int), 1, alnFile);
+		fwrite(&aln.L, sizeof(unsigned long long int), 1, alnFile);
+		fwrite(&aln.U, sizeof(unsigned long long int), 1, alnFile);
+		fwrite(&aln.num_mm, sizeof(int), 1, alnFile);
+		fwrite(&aln.num_gapo, sizeof(int), 1, alnFile);
+		fwrite(&aln.num_gape, sizeof(int), 1, alnFile);
+		fwrite(&aln.aln_length, sizeof(int), 1, alnFile);
+
+		int state_pairs = 0;
+		if(aln.aln_length > 0) {
+			int* states = (int*) calloc(aln.aln_length, sizeof(int));
+			int state = aln.aln_path[aln.aln_length-1];
+			uint16_t state_counter = 1;
+			state_pairs = 1;
+			for(int j = aln.aln_length-2; j >= 0; j--) {
+				if(state == aln.aln_path[j]) {
+					state_counter++;
+				} else {
+					states[state_pairs - 1] = state | (state_counter << 2);
+					state = aln.aln_path[j];
+					state_counter = 1;
+					state_pairs++;
+				}
+			}
+			states[state_pairs-1] = state | (state_counter << 2);
+			fwrite(&state_pairs, sizeof(int), 1, alnFile);
+			for(int j = 0; j < state_pairs; j++) {
+				fwrite(&states[j], sizeof(int), 1, alnFile);
+			}
+		} else {
+			fwrite(&state_pairs, sizeof(int), 1, alnFile);
+		}
+	}
+}
+
 // load alignments from file
 
 void load_alns_error(const char* alnFname) {
-	printf("alnsf2alns: Could not read alignment data from file: %s!\n", alnFname);
+	printf("alnsf2alns: Could not parse read alignment data in file (file content did not match expected format): %s!\n", alnFname);
 	exit(1);
 }
 
@@ -388,6 +427,61 @@ alns_t* alnsf2alns(int* n_alns, char *alnFname) {
 	return alns;
 }
 
+alns_t* alnsf2alns_bin(int* n_alns, char *alnFname) {
+	FILE * alnFile = (FILE*) fopen(alnFname, "rb");
+	if (alnFile == NULL) {
+		printf("alnsf2alns: Cannot open ALN file: %s!\n", alnFname);
+		perror(alnFname);
+		exit(1);
+	}
+	int num_alns = 0;
+	int alloc_alns = 2000000;
+	alns_t* alns = (alns_t*) calloc(alloc_alns, sizeof(alns_t));
+
+	while(!feof(alnFile)) {
+		if(num_alns == alloc_alns) {
+			alloc_alns <<= 1;
+			alns = (alns_t*) realloc(alns, alloc_alns*sizeof(alns_t));
+			memset(alns + alloc_alns/2, 0,  (alloc_alns/2)*sizeof(alns_t));
+		}
+		alns_t* read_alns = &alns[num_alns];
+		if(fread(&(read_alns->num_entries), sizeof(int), 1, alnFile) < 1) {
+			if(feof(alnFile)) break;
+			load_alns_error(alnFname);
+		}
+		read_alns->entries = (aln_t*) calloc(read_alns->num_entries, sizeof(aln_t));
+		for(int i = 0; i < read_alns->num_entries; i++) {
+			aln_t* aln = &(read_alns->entries[i]);
+
+			if(fread(&(aln->score), sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->L), sizeof(unsigned long long int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->U), sizeof(unsigned long long int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->num_mm), sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->num_gapo), sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->num_gape), sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			if(fread(&(aln->aln_length), sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			aln->aln_path = (char*) malloc(aln->aln_length*sizeof(char));
+			int state_pairs;
+			if(fread(&state_pairs, sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+			int state_pair;
+			int path_idx = 0;
+			for(int j = 0; j < state_pairs; j++) {
+				if(fread(&state_pair, sizeof(int), 1, alnFile) < 1) load_alns_error(alnFname);
+				int counter = state_pair >> 2;
+				int state = state_pair & 3; // last 2 bits
+				for(int k = 0; k < counter; k++) {
+					aln->aln_path[path_idx] = state;
+					path_idx++;
+				}
+			}
+		}
+		num_alns++;
+	}
+	*n_alns = num_alns;
+	fclose(alnFile);
+	return alns;
+}
+
 /* Alignment Result Evaluation & SAM IO */
 
 // SAM IO / MAPQ adapted from BWA
@@ -410,9 +504,10 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 
 	// load the alignment results of all the reads (TODO: batch)
 	int num_alns;
+	//alns_t* alns = alnsf2alns_bin(&num_alns, alnsFname);
 	alns_t* alns = alnsf2alns(&num_alns, alnsFname);
 	reads_t* reads = fastq2reads(readsFname);
-	assert(num_alns == reads->count);
+	//assert(num_alns == reads->count);
 
 	// open SAM for writing
 	FILE* samFile = (FILE*) fopen(samFname, "w");
@@ -436,19 +531,19 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 	int num_processed = 0;
 	while(num_processed < reads->count) {
 		int batch_size = ((reads->count - num_processed) > READ_BATCH_SIZE ) ? READ_BATCH_SIZE : (reads->count - num_processed);
-		for(int i = num_processed; i < num_processed + batch_size; i++) {
-			read_t* read = &reads->reads[i];
-			eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
+		for(int i = 0; i < batch_size; i++) {
+			if(num_processed == num_alns) {
+				break;
+			}
+			read_t* read = &reads->reads[num_processed];
+			eval_aln(read, &alns[num_processed], BWT, is_multiref, max_diff);
 			print_aln2sam(samFile, annotations, read);
-	
+			num_processed++;
 		}
-		printf("Processed %d reads.\n", num_processed+batch_size);
-		num_processed += batch_size;
-	}
-	for(int i = num_processed; i < reads->count; i++) {
-		read_t* read = &(reads->reads[i]);
-		eval_aln(read, &alns[i], BWT, is_multiref, max_diff);
-		print_aln2sam(samFile, annotations, read);
+		printf("Processed %d reads.\n", num_processed);
+		if(num_processed == num_alns) {
+			break;
+		}
 	}
 
 	free(bwtFname);

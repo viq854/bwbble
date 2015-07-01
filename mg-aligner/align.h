@@ -140,7 +140,9 @@ void reset_alignments(alns_t* alns);
 void add_alignment(aln_entry_t* e, bwtint_t L, bwtint_t U, int score, alns_t* alns, const aln_params_t* params);
 void print_alignments(alns_t* alns);
 void alns2alnf(alns_t* alns, FILE* alnFile);
+void alns2alnf_bin(alns_t* alns, FILE* alnFile);
 alns_t* alnsf2alns(int* num_alns, char *alnFname);
+alns_t* alnsf2alns_bin(int* n_alns, char *alnFname);
 void eval_alns(char *fastaFname, char *readsFname, char *alnFname, int is_multiref, int max_diff);
 void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFname, int is_multiref, int max_diff);
 

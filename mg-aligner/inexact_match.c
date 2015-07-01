@@ -24,7 +24,7 @@ static inline int aln_score(const int m, const int o, const int e, const aln_par
 
 int align_reads_inexact(bwt_t *BWT, reads_t* reads, sa_intv_list_t* precalc_sa_intervals_table, aln_params_t* params, char* alnFname) {
 	printf("BWBBLE Inexact Alignment...\n");
-	FILE* alnFile = (FILE*) fopen(alnFname, "a+");
+	FILE* alnFile = (FILE*) fopen(alnFname, "a+b");
 	if (alnFile == NULL) {
 		printf("align_reads_inexact: Cannot open ALN file: %s!\n", alnFname);
 		perror(alnFname);
@@ -70,7 +70,7 @@ int align_reads_inexact(bwt_t *BWT, reads_t* reads, sa_intv_list_t* precalc_sa_i
 		clock_t ts = clock();
 		for(int i = num_processed; i < num_processed + batch_size; i++) {
 			read_t* read = &reads->reads[i];
-			alns2alnf(read->alns, alnFile);
+			alns2alnf_bin(read->alns, alnFile);
 			free_alignments(read->alns);
 			free(read->seq);
 			free(read->rc);
