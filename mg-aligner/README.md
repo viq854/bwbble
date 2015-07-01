@@ -8,24 +8,24 @@ The following commands and options are available with the BWBBLE aligner.
 
 Usage: ```bwbble command [options]```   
 
-Commands:  
-* ```index``` index the reference multi-genome in the FASTA format   
+####Commands:  
+1.```index``` index the reference multi-genome in the FASTA format   
 ```bwbble index <seq_fasta>```   
 
-*```align``` align reads  
+2.```align``` align reads  
 ```bwbble align [options] <seq_fasta> <reads_fastq> [output_aln]```  
  
-Options:  
-```M``` mismatch penalty  
-```O``` gap open penalty  
-```E``` gap extend penalty  
-```n``` maximum number of differences in the alignment (gaps and mismatches)  
-```l``` length of the seed (seed := first l chars of the read)  
-```k``` maximum number of differences in the seed  
-```o``` maximum number of gap opens  
-```e``` maximum number of gap extends  
-```t``` run multi-threaded with t threads  
-```S``` align with a single-genome reference  
+####Options:  
+```-M <arg>``` mismatch penalty (default: 3)  
+```-O <arg> ``` gap open penalty (default: 11)  
+```-E <arg> ``` gap extend penalty (default: 4)  
+```-n <arg> ``` maximum number of differences in the alignment (gaps and mismatches) (default: 0)  
+```-l <arg> ``` length of the seed (seed := first ```l``` chars of the read) (default: 32)  
+```-k <arg> ``` maximum number of differences in the seed (default: 2)  
+```-o <arg> ``` maximum number of gap opens (default: 1)  
+```-e <arg> ``` maximum number of gap extends (default: 6)  
+```-t <arg> ``` run multi-threaded with t threads (default: 1)  
+```-S``` align with a single-genome reference    
 
-*```aln2sam``` convert alignment results to SAM file format for single-end mapping  
+3.```aln2sam``` convert alignment results to SAM file format for single-end mapping  
 ```bwbble aln2sam [options] <seq_fasta> <reads_fastq> <alns_aln> <output_sam>```  
