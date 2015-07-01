@@ -153,7 +153,7 @@ int align_reads_inexact_parallel(bwt_t *BWT, reads_t* reads, sa_intv_list_t* pre
 		clock_t ts = clock();
 		for(int i = num_processed; i < num_processed + batch_size; i++) {
 			read_t* read = &reads->reads[i];
-			alns2alnf(read->alns, alnFile);
+			alns2alnf_bin(read->alns, alnFile);
 			free_alignments(read->alns);
 			free(read->seq);
 			free(read->rc);
