@@ -29,3 +29,10 @@ Usage: ```bwbble command [options]```
 
 3.```aln2sam``` convert alignment results to SAM file format for single-end mapping  
 ```bwbble aln2sam [options] <seq_fasta> <reads_fastq> <alns_aln> <output_sam>```  
+
+### Example
+
+```make clean; make```  
+```./bwbble index ../test_data/chr21.fa```  
+```./bwbble align ../test_data/chr21.fa ../test_data/sim_chr21_N100.fastq ../test_data/sim_chr21_N100.aln```  
+```./bwbble aln2sam ../test_data/chr21.fa ../test_data/sim_chr21_N100.fastq ../test_data/sim_chr21_N100.aln ../test_data/sim_chr21_N100.sam```
