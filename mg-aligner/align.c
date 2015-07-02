@@ -504,8 +504,8 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 
 	// load the alignment results of all the reads (TODO: batch)
 	int num_alns;
-	//alns_t* alns = alnsf2alns_bin(&num_alns, alnsFname);
-	alns_t* alns = alnsf2alns(&num_alns, alnsFname);
+	alns_t* alns = alnsf2alns_bin(&num_alns, alnsFname);
+	//alns_t* alns = alnsf2alns(&num_alns, alnsFname);
 	reads_t* reads = fastq2reads(readsFname);
 	//assert(num_alns == reads->count);
 
