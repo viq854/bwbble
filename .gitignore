@@ -1,0 +1,11 @@
+*.ann
+*.bwt
+*.ref
+*.sam
+*.aln
+
+*.o
+bwbble
+comb
+data_prep
+sam_pad

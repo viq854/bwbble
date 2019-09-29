@@ -1,0 +1,5 @@
+echo "Help for the mg-ref image"
+echo "-------------------------"
+echo "Commands:"
+echo "  - data_prep"
+echo "  - comb"
