@@ -23,11 +23,12 @@ stages:
     - task: Docker@2
       displayName: Build an image
       inputs:
-        command: build
+        command: buildAndPush
         dockerfile: 'mg-ref/Dockerfile'
         buildContext: mg-ref
+        containerRegistry: dockerHubBwbble
         tags: |
-          $(tag)
+          bwbble/mg-ref:$(tag)
   - job: BuildAligner
     displayName: Build Aligner
     pool:
@@ -36,8 +37,9 @@ stages:
     - task: Docker@2
       displayName: Build an image
       inputs:
-        command: build
+        command: buildAndPush
         dockerfile: 'mg-aligner/Dockerfile'
         buildContext: mg-aligner
+        containerRegistry: dockerHubBwbble
         tags: |
-          $(tag)
+          bwbble/mg-aligner:$(tag)
