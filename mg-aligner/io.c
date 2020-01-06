@@ -407,7 +407,7 @@ void seq2rev_compl(unsigned char* seq, bwtint_t seqLen, unsigned char** rcSeq) {
 /* Reads I/O */
 
 // loads the read sequences from the FASTQ file
-reads_t* fastq2reads(const char *readsFname) {
+reads_t* fastq2reads(const char *readsFname, int skip, int limit) {
 	FILE *readsFile = (FILE*) fopen(readsFname, "r");
 	if (readsFile == NULL) {
 		printf("load_reads_fastq: Cannot open reads file: %s !\n", readsFname);
@@ -418,6 +418,14 @@ reads_t* fastq2reads(const char *readsFname) {
 	reads->reads = (read_t*) malloc(allocatedReads*sizeof(read_t));
 	reads->count = 0;
 
+	skip *= 4;
+	while (skip-- > 0 && !feof(readsFile)) {
+		while (!feof(readsFile) && '\n' != (char) getc(readsFile)) {
+			// Do nothing with this character, it is being skipped while we look
+			// for a new-line.
+		}
+	}
+	
 	char c;
 	while(!feof(readsFile)) {
 		if (reads->count >= allocatedReads) {
@@ -507,6 +515,10 @@ reads_t* fastq2reads(const char *readsFname) {
 			reads->max_len = read->len;
 		}
 		reads->count++;
+
+		if (reads->count == limit) {
+			break;
+		}
 	}
 	printf("Loaded %d reads from %s.\n", reads->count, readsFname);
 	

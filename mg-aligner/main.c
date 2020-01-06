@@ -63,6 +63,8 @@ static int align_usage() {
 	printf("         o    maximum number of gap opens (default: 1)\n");
 	printf("         e    maximum number of gap extends (default: 6) \n");
 	printf("         t    run multi-threaded with t threads (default: 1)\n");
+	printf("         s    the number of lines to skip in the read file before processing (default: 0)\n");
+	printf("         p    the number of lines to process in the read file (default: -1)\n");
 	printf("         S    align with a single-genome reference\n");
 	printf("         P    use pre-calculated partial alignment results\n");
 	printf("\n");
@@ -97,7 +99,7 @@ int main(int argc, char *argv[]) {
 		set_default_aln_params(params);
 
 		int c;
-		while ((c = getopt(argc-1, argv+1, "M:O:E:n:k:o:e:l:m:t:SP")) >= 0) {
+		while ((c = getopt(argc-1, argv+1, "M:O:E:n:k:o:e:l:m:t:s:p:SP")) >= 0) {
 				switch (c) {
 					case 'M': params->mm_score = atoi(optarg); break;
 					case 'O': params->gapo_score = atoi(optarg); break;
@@ -109,6 +111,8 @@ int main(int argc, char *argv[]) {
 					case 'l': params->seed_length = atoi(optarg); break;
 					case 'm': params->max_entries = atoi(optarg); break;
 					case 't': params->n_threads = atoi(optarg); break;
+					case 's': params->lines_skip = atoi(optarg); break;
+					case 'p': params->lines_limit = atoi(optarg); break;
 					case 'S': params->is_multiref = 0; break;
 					case 'P': params->use_precalc = 1; break;
 					case '?': align_usage(); return 1;

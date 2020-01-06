@@ -210,7 +210,7 @@ void fasta2ref(const char *fastaFname, const char* refFname, const char* annFnam
 void ref2seq(const char* refFname, unsigned char** seq, bwtint_t* seqLen);
 void fasta2pac(const char *fastaFname, const char* pacFname, const char* annFname);
 void pac2seq(const char *pacFname, unsigned char** seq, bwtint_t *seqLength);
-reads_t* fastq2reads(const char *readsFname);
+reads_t* fastq2reads(const char *readsFname, int skip, int limit);
 void seq2rev_compl(unsigned char* seq, bwtint_t seqLen, unsigned char** rcSeq);
 void parse_read_mapping(read_t* read);
 

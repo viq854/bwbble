@@ -35,6 +35,8 @@ void set_default_aln_params(aln_params_t* params) {
 	params->max_best = 30;
 	params->no_indel_length = 5;
 	params->n_threads = 1;
+	params->lines_skip = 0;
+	params->lines_limit = -1;
 }
 
 int align_reads(char* fastaFname, char* readsFname, char* alnsFname, aln_params_t* params) {
@@ -52,7 +54,7 @@ int align_reads(char* fastaFname, char* readsFname, char* alnsFname, aln_params_
 	printf("Total BWT loading time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
 	
 	t = clock();
-	reads_t* reads = fastq2reads(readsFname);
+	reads_t* reads = fastq2reads(readsFname, params->lines_skip, params->lines_limit);
 	printf("Total read loading time: %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);	
 
 	sa_intv_list_t* sa_intv_table = NULL;
@@ -506,7 +508,7 @@ void alns2sam(char *fastaFname, char *readsFname, char *alnsFname, char* samFnam
 	int num_alns;
 	alns_t* alns = alnsf2alns_bin(&num_alns, alnsFname);
 	//alns_t* alns = alnsf2alns(&num_alns, alnsFname);
-	reads_t* reads = fastq2reads(readsFname);
+	reads_t* reads = fastq2reads(readsFname, 0, -1);
 	//assert(num_alns == reads->count);
 
 	// open SAM for writing
@@ -672,7 +674,7 @@ void eval_alns(char *fastaFname, char *readsFname, char *alnsFname, int is_multi
 	int num_alns;
 	alns_t* alns = alnsf2alns(&num_alns, alnsFname);
 	bwt_t* BWT = load_bwt(bwtFname, 1);
-	reads_t* reads = fastq2reads(readsFname);
+	reads_t* reads = fastq2reads(readsFname, 0, -1);
 	assert(num_alns == reads->count);
 
 	// for each read: evaluate the alignment quality and accuracy

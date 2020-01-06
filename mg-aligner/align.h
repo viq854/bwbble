@@ -76,6 +76,10 @@ typedef struct {
 	// multi-threading
 	int n_threads;
 
+	// the lines to start and end reading within the reads file
+	int lines_skip;
+	int lines_limit;
+
 } aln_params_t;
 
 typedef struct {
