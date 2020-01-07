@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sam_pad
+  labels:
+    app.kubernetes.io/managed-by: faaideen
+    bwbble-stage: sam_pad
+    bwbble-version: dev
+spec:
+  template:
+    metadata:
+      name: sam_pad
+      labels:
+        app.kubernetes.io/managed-by: faaideen
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: sam_pad
+          image: "{{.Values.image.repository}}"
+          imagePullPolicy: "{{.Values.image.pullPolicy}}"

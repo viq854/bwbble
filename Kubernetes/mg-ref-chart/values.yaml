@@ -1,0 +1,16 @@
+# Default values for mg-ref-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  version: latest
+  repository: bwbble
+  pullPolicy: IfNotPresent
+
+  mgref: mg-ref
+  mgalign: mg-align
+
+nameOverride: ""
+fullnameOverride: ""

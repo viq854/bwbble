@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data_prep
+  labels:
+    app.kubernetes.io/managed-by: faaideen
+    bwbble-stage: data-prep
+    bwbble-version: dev
+spec:
+  template:
+    metadata:
+      name: data_prep
+      labels:
+        app.kubernetes.io/managed-by: faaideen
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: data-prep
+          image: "{{.Values.image.repository}}"
+          imagePullPolicy: "{{.Values.image.pullPolicy}}"
